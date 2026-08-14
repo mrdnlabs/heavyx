@@ -1,0 +1,6 @@
+# shell scripts must stay LF (they run in WSL/Linux ACAP builds)
+*.sh text eol=lf
+Dockerfile text eol=lf
+Makefile text eol=lf
+# .eap is a gzipped tar — never touch
+*.eap binary

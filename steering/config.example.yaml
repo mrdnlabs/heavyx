@@ -1,0 +1,66 @@
+# Production template for the off-camera PTZ steering controller.
+# Copy to config.yaml (gitignored) and edit. Password may instead come from
+# env PTZ_PASSWORD. Structure matches ptz_tracker.py (step/velocity modes,
+# mqtt/rtsp/snapshot sources). For a live loaner-test example see
+# config.loaner.yaml.
+
+source: mqtt                 # DetectX on-camera detections (production path)
+mode: step                   # step (half-way centering, 1 Hz) | velocity (PD)
+
+camera:
+  host: 192.168.1.141        # PTZ camera IP (VAPIX)
+  http_port: 80
+  user: root
+  # password: pass           # or set env PTZ_PASSWORD
+  camera_number: 1
+
+mqtt:
+  host: 127.0.0.1            # broker DetectX publishes to
+  port: 1883
+  topic: detectx/detection/+ # + = camera serial
+  # username: ""
+  # password: ""
+
+frame:                       # DetectX video resolution (see its /local/detectx/app)
+  width: 856
+  height: 640
+
+targeting:
+  # Stage 3 12-class machinery taxonomy, in follow-priority order (first match
+  # wins). Labels MUST match the deployed model's labels.txt exactly. Drop
+  # "person" to ignore workers entirely.
+  classes: [excavator, bulldozer, wheel loader, dump truck, truck,
+            mobile crane, tower crane, pump truck, concrete mixer,
+            pile driver, roller, person]
+  min_confidence: 0.40       # fraction 0-1 (DetectX 'c' 0-100 is normalized)
+  max_age_s: 2.5
+  stickiness_s: 5.0          # keep current target class this long before switching
+
+step:
+  period_s: 1.0              # one command per second
+  approach_fraction: 0.33    # close this fraction of the error each step
+  deadband: 0.07             # quiet zone: no move when roughly centered
+  ema_alpha: 0.35            # smoothing of the (jittery) detection-box center
+
+velocity:
+  rate_hz: 6
+  pan_gain: 60
+  tilt_gain: 45
+  pan_dgain: 8
+  tilt_dgain: 6
+  deadband: 0.055
+  max_speed: 60
+  ema_alpha: 0.4
+  speed_by_zoom: true        # scale gains down as the camera zooms in
+
+zoom:
+  enabled: true              # keep the target ~half the frame height
+  target_height_frac: 0.5
+  band: [0.35, 0.65]         # hysteresis: no zoom action inside this band
+  min_step: 0.7
+  max_step: 1.6
+  reacquire_step: 2000
+
+loss:
+  stop_after_s: 1.5          # target gone: stop moving (velocity mode)
+  zoom_out_after_s: 6.0      # still gone: zoom out to reacquire

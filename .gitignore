@@ -1,0 +1,27 @@
+__pycache__/
+*.pyc
+venv/
+.env
+
+# datasets and heavy/generated artifacts stay out of git
+datasets/
+runs/
+third_party/
+vendor/
+
+# models/ holds large trained weights AND local test snapshots (some private) —
+# exclude entirely. The shippable ACAP package is under acap/.../build/ instead.
+models/
+
+# GPU health telemetry
+gpu_health.csv
+
+# ACAP build tree: keep only the shippable .eap, drop intermediates
+acap/**/build/*
+!acap/**/build/*.eap
+
+# local secrets / per-machine config
+steering/config.yaml
+
+# harness/runtime state
+.claude/

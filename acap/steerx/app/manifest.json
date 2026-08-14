@@ -1,0 +1,21 @@
+{
+    "schemaVersion": "1.7.1",
+    "acapPackageConf": {
+        "setup": {
+            "appName": "steerx",
+            "friendlyName": "SteerX PTZ Follow",
+            "vendor": "Machinery Tracking PoC",
+            "embeddedSdkVersion": "3.0",
+            "runMode": "never",
+            "version": "0.2.0",
+            "architecture": "aarch64"
+        }
+    },
+    "resources": {
+        "dbus": {
+            "requiredMethods": [
+                "com.axis.HTTPConf1.VAPIXServiceAccounts1.GetCredentials"
+            ]
+        }
+    }
+}
