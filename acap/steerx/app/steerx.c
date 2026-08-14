@@ -12,7 +12,7 @@
  *      (hysteresis band avoids zoom hunting)
  *   5. on target loss: hold, then one zoom-out step to reacquire
  *
- * VAPIX auth on 127.0.0.1 comes from the D-Bus VAPIX service-account API.
+ * VAPIX auth on 127.0.0.12 (service-account virtual host) comes from the D-Bus VAPIX service-account API.
  * Design notes: docs/STEERING.md in the project repo.
  */
 #include <curl/curl.h>
@@ -59,7 +59,7 @@ typedef struct {
     size_t len;
 } membuf_t;
 
-static char g_auth[256];         /* "user:pass" for 127.0.0.1 VAPIX */
+static char g_auth[256];         /* "user:pass" for 127.0.0.12 VAPIX */
 static int g_vid_w = 856, g_vid_h = 640;
 
 static size_t write_cb(void *data, size_t sz, size_t nm, void *userp) {
@@ -81,7 +81,9 @@ static char *http_get(const char *url) {
     membuf_t m = {0};
     curl_easy_setopt(c, CURLOPT_URL, url);
     curl_easy_setopt(c, CURLOPT_USERPWD, g_auth);
-    curl_easy_setopt(c, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
+    /* service-account creds on the 127.0.0.12 virtual host are validated with
+     * BASIC (per the official Axis vapix example) — DIGEST is rejected (401) */
+    curl_easy_setopt(c, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
     curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(c, CURLOPT_WRITEDATA, &m);
     curl_easy_setopt(c, CURLOPT_TIMEOUT, 3L);
@@ -119,22 +121,11 @@ static int fetch_credentials(void) {
         return -1;
     }
     const char *cred = NULL;
-    g_variant_get(res, "(&s)", &cred);
-    /* diagnose the exact format once: log length, #colons, #equals, and the
-     * text up to the first ':' (the service-account username, not secret) */
-    int colons = 0, equals = 0;
-    for (const char *p = cred; *p; p++) {
-        if (*p == ':') colons++;
-        if (*p == '=') equals++;
-    }
-    const char *first_colon = strchr(cred, ':');
-    int userlen = first_colon ? (int)(first_colon - cred) : -1;
-    syslog(LOG_INFO, "cred format: len=%zu colons=%d equals=%d user='%.*s'",
-           strlen(cred), colons, equals,
-           userlen > 0 ? userlen : 0, userlen > 0 ? cred : "");
-    /* returned as "id=user:pass" or "user:pass" depending on version */
-    const char *eq = strchr(cred, '=');
-    snprintf(g_auth, sizeof(g_auth), "%s", eq ? eq + 1 : cred);
+    g_variant_get(res, "(&s)", &cred);   /* "username:password" */
+    snprintf(g_auth, sizeof(g_auth), "%s", cred);
+    const char *colon = strchr(cred, ':');
+    syslog(LOG_INFO, "got service-account credentials (user='%.*s')",
+           colon ? (int)(colon - cred) : 0, cred);
     g_variant_unref(res);
     g_object_unref(conn);
     return 0;
@@ -188,7 +179,7 @@ static int priority_rank(const char *label) {
 static void vapix_ptz(const char *params) {
     char url[512];
     snprintf(url, sizeof(url),
-             "http://127.0.0.1/axis-cgi/com/ptz.cgi?%s&camera=1", params);
+             "http://127.0.0.12/axis-cgi/com/ptz.cgi?%s&camera=1", params);
     char *r = http_get(url);
     free(r);
 }
@@ -202,7 +193,7 @@ int main(void) {
 
     /* probe: can the service account read a plain VAPIX CGI vs DetectX's
      * cross-app admin endpoint? disambiguates auth-scope from auth-scheme */
-    char *probe = http_get("http://127.0.0.1/axis-cgi/param.cgi"
+    char *probe = http_get("http://127.0.0.12/axis-cgi/param.cgi"
                            "?action=list&group=Brand.ProdNbr");
     syslog(LOG_INFO, "probe /axis-cgi/param.cgi: %s",
            probe ? "OK (200)" : "FAILED");
@@ -210,7 +201,7 @@ int main(void) {
 
     /* learn DetectX's video geometry (retry until DetectX is up) */
     for (;;) {
-        char *app = http_get("http://127.0.0.1/local/detectx/app");
+        char *app = http_get("http://127.0.0.12/local/detectx/app");
         if (app) {
             g_vid_w = json_int(app, "videoWidth", 856);
             g_vid_h = json_int(app, "videoHeight", 640);
@@ -228,7 +219,7 @@ int main(void) {
 
     for (;;) {
         sleep(PERIOD_S);
-        char *st = http_get("http://127.0.0.1/local/detectx/status");
+        char *st = http_get("http://127.0.0.12/local/detectx/status");
         if (!st) continue;
         det_t dets[32];
         int n = parse_detections(st, dets, 32);

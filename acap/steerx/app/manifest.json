@@ -7,8 +7,11 @@
             "vendor": "Machinery Tracking PoC",
             "embeddedSdkVersion": "3.0",
             "runMode": "never",
-            "version": "0.2.0",
+            "version": "0.3.0",
             "architecture": "aarch64"
+        },
+        "configuration": {
+            "settingPage": "index.html"
         }
     },
     "resources": {

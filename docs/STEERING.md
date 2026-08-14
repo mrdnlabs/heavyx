@@ -54,24 +54,45 @@ deadband 5–6%, slew-rate clamp, gains scaled by `1/zoom_magnification`
   (loan devices block outgoing traffic, so on-camera MQTT can't reach us) and
   for developing against cameras with no model installed.
 
-## steerx ACAP (on-camera port) — v0.2.0
+## steerx ACAP (on-camera port) — v0.3.0
 
-`acap/steerx/` is the native C port of the step controller. v0.2.0 is wired to
-the Stage 3 12-class machinery taxonomy (follow priority, machinery first,
-`person` last so equipment beats workers): excavator, bulldozer, wheel loader,
-dump truck, truck, mobile crane, tower crane, pump truck, concrete mixer,
-pile driver, roller, person. Label strings must match the deployed model's
+`acap/steerx/` is the native C port of the step controller, wired to the
+Stage 3 12-class machinery taxonomy (follow priority, machinery first, `person`
+last so equipment beats workers): excavator, bulldozer, wheel loader, dump
+truck, truck, mobile crane, tower crane, pump truck, concrete mixer, pile
+driver, roller, person. Label strings must match the deployed model's
 labels.txt exactly. Carries the loaner-validated tuning (APPROACH_FRAC 0.33,
-DEADBAND 0.07). Built artifact: `acap/steerx/build/SteerX_PTZ_Follow_0_2_0_aarch64.eap`.
+DEADBAND 0.07). Built artifact:
+`acap/steerx/build/SteerX_PTZ_Follow_0_3_0_aarch64.eap`.
 
-Not yet deployed to a live PTZ: the P3408 test camera is a fixed dome, and on
-Axis loan devices the VAPIX service-account credentials are rejected (401), so
-steerx can't read DetectX or drive VAPIX there. It needs an **owned ARTPEC-9
-PTZ** running DetectX-with-the-machinery-model + steerx together to prove the
-fully on-camera detect->steer loop. Until then the proven path is DetectX
-on-camera + `ptz_tracker.py` off-camera (see config.example.yaml).
-Not-yet-ported vs the off-camera controller: EMA box-center smoothing and
-velocity mode.
+**Web UI (v0.3.0):** `settingPage` in the manifest adds an "Open" button in the
+camera's Apps list, serving `app/html/index.html` at `/local/steerx/`. The page
+uses the browser's authenticated session to live-poll DetectX detections and PTZ
+position, showing which target SteerX is tracking, the follow-priority list, and
+the control tuning. (The page mirrors the follow logic; steerx itself has no HTTP
+endpoint yet.)
+
+**Local VAPIX auth — SOLVED (v0.3.0), was the on-camera blocker:** service-account
+credentials from `com.axis.HTTPConf1.VAPIXServiceAccounts1.GetCredentials` are
+only valid on the virtual host **`127.0.0.12`** (NOT `127.0.0.1`) and must be
+sent with **HTTP Basic** (NOT Digest — Digest returns 401). Verified live on the
+loaner Q6355: steerx authenticates, reads `/local/detectx/*`, and reaches
+`/axis-cgi/*`. This was previously misdiagnosed as a loan-device restriction — it
+was the loopback address + auth scheme. Ref: `C:\_acap` guides
+(vapix-local-auth-from-acap.md, acap-manifest-gotchas.md) and the official
+acap-native-sdk-examples/vapix example.
+
+**Build hygiene (from `C:\_acap` guides):** Dockerfile chmods files to 644/755
+(WSL `/mnt/c` reports 777, which silently makes the installer skip the web-UI
+proxy rules); `.dockerignore` excludes `*.eap` (acap-build merges manifest fields
+from stale EAPs); build with `--no-cache` (WSL BuildKit stale-layer bug).
+
+Remaining to fully prove on-camera: a live detect->steer run on an **owned**
+ARTPEC-9 PTZ with the machinery model loaded and machinery actually in view (the
+loaner runs stock COCO in a camera warehouse — steerx authenticates and idles
+correctly with no machinery to follow). Steering *motion* itself is already
+proven via the off-camera `ptz_tracker.py` (see the follow GIF). Not-yet-ported
+vs the off-camera controller: EMA box-center smoothing and velocity mode.
 
 ## Loaner experiment target (Axis Virtual Loan, ends 2026-08-14 21:00)
 

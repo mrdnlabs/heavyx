@@ -1,0 +1,7 @@
+# keep stale build artifacts out of the build context: acap-build silently
+# merges manifest fields from any *.eap it finds in app/
+*.eap
+*.o
+build
+*.log
+.git
