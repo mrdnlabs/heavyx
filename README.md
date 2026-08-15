@@ -1,86 +1,85 @@
-# Heavy Machinery Auto-Tracking for Axis PTZ
+# HeavyX — Heavy Machinery Detection + PTZ Auto-Follow
 
-Detect heavy construction machinery (excavators, dozers, loaders, dump trucks, …)
-on an Axis PTZ camera and auto-steer the camera to follow it.
-
-**Architecture (PoC):**
+**One ACAP for Axis ARTPEC-9 cameras**: detects heavy construction machinery
+(12 classes) on-camera, burns boxes/labels/stats into the video stream, and —
+on PTZ cameras — steers the camera to keep the highest-priority machine
+centered and framed.
 
 ```
-┌─────────────────────────── Axis PTZ (ARTPEC-9, e.g. Q6355-LE) ──┐
-│  DetectX ACAP  ──runs──▶  custom YOLOv5n .tflite (INT8)         │
-│       │                                                          │
-│       └── MQTT detections ──▶ broker ──▶ steering/ptz_tracker.py │
-│                                              │                   │
-│  VAPIX PTZ API  ◀── continuous-move commands ┘                   │
-└──────────────────────────────────────────────────────────────────┘
+┌───────────────── Axis ARTPEC-9 camera ─────────────────┐
+│  HeavyX ACAP (single .eap)                             │
+│    ├─ YOLOv5m INT8 machinery model (baked in, DLPU)    │
+│    ├─ axoverlay: boxes + labels burned into the stream │
+│    ├─ PTZ follow: margin zoom · edge-clip · priority   │
+│    ├─ Signal-HUD web UI at /local/heavyx/              │
+│    └─ outputs: MQTT · ONVIF events · crops · JSONL log │
+└────────────────────────────────────────────────────────┘
 ```
 
-Detection runs on-camera via [DetectX](https://github.com/pandosme/DetectX)
-(open-source ACAP that loads a custom YOLOv5 `.tflite` + `labels.txt` and emits
-detections over MQTT). Steering starts as an off-camera Python controller
-(`steering/ptz_tracker.py`) driving the camera over VAPIX — fastest to iterate.
-Once the control loop is tuned it gets ported into a native ACAP so everything
-runs on-camera.
+Classes: excavator, dump truck, wheel loader, truck, person, bulldozer,
+roller, mobile crane, tower crane, pump truck, concrete mixer, pile driver.
 
-## Status (2026-08-13)
+## Install
 
-- Test camera: **AXIS P3408-VE fixed dome** at 192.168.1.141 (ARTPEC-9 DLPU,
-  AXIS OS 12.10.68). Stage 0 deployed and verified: DetectX 4.1.1 running the
-  Axis pretrained COCO yolov5n at ~45 ms/frame on the DLPU.
-- Steering waits on PTZ hardware (Q6355-LE recommended). Customer's current
-  P5655-E (ARTPEC-7, no DLPU) can't run YOLO.
-- Training machine: local **RTX 4070 Laptop, 8 GB VRAM** (WSL2; needed
-  `gpuSupport=true` in `~/.wslconfig`). ~99 GB free disk.
-- See [docs/PLAN.md](docs/PLAN.md) for the staged plan and verified toolchain facts.
+Grab `HeavyX_<ver>_aarch64.eap` from
+[Releases](https://github.com/mrdnlabs/heavyx/releases) →
+camera Apps page → enable "Allow unsigned apps" (re-disable after) →
+install → start → **Open**. Or:
 
-## Staged plan (summary)
+```bash
+cd acap/heavyx && AXIS_USER=root AXIS_PASS=... ./install.sh <camera-ip>
+```
 
-| Stage | Cost | What it proves |
-|-------|------|----------------|
-| 0 | $0 | Stock COCO yolov5n → Axis INT8 export → DetectX on camera. Validates the whole convert–quantize–deploy path. Steering loop built in parallel against COCO `person`/`truck`. |
-| 1 | ~$0 | Tiny fine-tune (10–20 epochs) on the small Roboflow construction set. Validates training→camera path, class taxonomy, PTQ calibration, float-vs-INT8 eval. |
-| 2 | ~$0 (local GPU) | Full fine-tune yolov5n/s on MOCS+ACID(+SODA), 100–300 epochs @640px. Overnight on the 4070. |
-| 3 | labeling time | Fine-tune on frames from the customer's actual site. Biggest real-world win. |
+Steering ships **disabled**; enable it in the HUD's TRACK tab (PTZ cameras
+only — fixed cameras run detection + overlay with steering cleanly off).
+Requires AXIS OS 12.x. On 2 GB devices stop AXIS Object Analytics first.
 
 ## Repo layout
 
 ```
-data/        class taxonomy + YOLOv5 dataset configs
-scripts/     dataset download / COCO→YOLO / VOC→YOLO prep (hardlinking)
-export/      Axis TFLite INT8 export pipeline + float-vs-INT8 eval
-steering/    off-camera PTZ steering controller (MQTT in → VAPIX out)
-acap/        native steering ACAP (later port of steering/)
-docs/        plan, hardware findings
+acap/heavyx/     the product — DetectX-fork ACAP (model baked in, PTZ, HUD)
+steering/        off-camera dev controller (ptz_tracker.py; velocity mode lives here)
+scripts/         model training/export pipeline (WSL2 + docker, Axis recipe)
+docs/            plan, hardware findings, steering design history
+design_scope/    Signal-HUD design mockups (implemented in acap/heavyx)
+legacy/steerx/   superseded standalone steering ACAP (poc-v0.4.0 provenance)
 ```
 
-## Workflow (all training scripts run inside WSL2 Ubuntu)
+Local-only (gitignored, not in the repo): `models/` (training artifacts),
+`third_party/axis-model-zoo` ([upstream](https://github.com/AxisCommunications/axis-model-zoo)),
+`vendor/` (DetectX mirror from [pandosme/DetectX](https://github.com/pandosme/DetectX/releases)),
+`datasets/` (in WSL: ~/machinery/datasets).
+
+## Training pipeline (WSL2 + RTX GPU)
 
 ```bash
-# one-time environment (micromamba py3.11, patched yolov5, torch CUDA, TF 2.15)
-bash scripts/setup_wsl_env.sh
-
-# Stage 1: dataset → train → export → eval
-~/machinery/env/bin/python scripts/prep_stage1_hf.py --out ~/machinery/datasets/stage1
-bash scripts/train_stage1.sh       # EPOCHS=60 BATCH=16 by default
-bash scripts/export_stage1.sh      # INT8 TFLite → models/stage1/
-bash scripts/eval_stage1.sh        # float vs INT8 mAP (healthy PTQ loss: 1-3 pts)
+bash scripts/setup_wsl_env.sh        # micromamba py3.11 + patched yolov5 + TF (export env)
+bash scripts/setup_train_env.sh      # modern-torch training env (see note below)
+python scripts/prep_stage3.py ...    # build the machinery dataset
+bash scripts/train_stage2.sh         # (parameterized: NAME/DATA/WEIGHTS/EPOCHS/BATCH)
+bash scripts/export_stage3.sh        # INT8 TFLite per the Axis recipe
 ```
 
-Deploy to the camera (from Windows):
+Model swap: copy the new `.tflite` + `labels.txt` into
+`acap/heavyx/app/model/`, rebuild the .eap (quantization constants are
+extracted at build). Runtime upload via the Model page is only safe for
+retrains with identical quantization.
 
-```bash
-powershell -ExecutionPolicy Bypass -File scripts/deploy_model.ps1 -Tflite models/stage1/machinery_stage1_int8.tflite -Labels models/stage1/labels.txt -Description "Stage 1 machinery fine-tune"
-```
+Note: training and export use **separate** WSL envs — the Axis export recipe
+pins TF 2.13 (forcing old torch that crashes modern NVIDIA drivers); training
+uses its own env with current torch.
 
-Check live detections: `http://<camera>/local/detectx/status` (digest auth).
+## Licenses
 
-Steering (needs a PTZ camera + MQTT broker; test dome is fixed):
+Code: MIT (fork of [DetectX](https://github.com/pandosme/DetectX) by Fred
+Juhlin — see `acap/heavyx/NOTICE`). **Model weights are YOLOv5-derived
+(AGPL-3.0)**, trained on public construction datasets (some CC BY-NC) —
+review obligations before commercial redistribution; the intended production
+path is retraining on customer site footage.
 
-```bash
-python steering/ptz_tracker.py --config steering/config.yaml --dry-run
-```
+## History
 
-## License note
-
-YOLOv5 is AGPL-3.0 (Ultralytics). Fine for the PoC; a commercial ACAP needs an
-Ultralytics license or a permissive-license architecture swap later.
+Built as a staged PoC: COCO deploy-path validation → small fine-tune →
+MOCS-merged 12-class model → standalone steering ACAP (`legacy/steerx`,
+releases `poc-v0.3.0`/`poc-v0.4.0`) → merged into HeavyX 1.0.x. Details in
+[docs/PLAN.md](docs/PLAN.md) and [docs/STEERING.md](docs/STEERING.md).

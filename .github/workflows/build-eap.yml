@@ -6,7 +6,7 @@ on:
       - main
       - master
     tags:
-      - 'v*'
+      - 'heavyx-v*'
   pull_request:
     branches:
       - main
@@ -20,6 +20,9 @@ jobs:
   build-eap:
     name: Build ACAP EAP
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: acap/heavyx
 
     outputs:
       artifact_name: ${{ steps.package.outputs.artifact_name }}
@@ -55,13 +58,13 @@ jobs:
         with:
           name: ${{ steps.package.outputs.artifact_name }}
           path: |
-            *.eap
+            acap/heavyx/*.eap
           if-no-files-found: error
           retention-days: 90
 
   release-eap:
     name: Publish GitHub Release Asset
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/heavyx-v')
     needs: build-eap
     runs-on: ubuntu-latest
 
@@ -78,7 +81,7 @@ jobs:
       - name: Prepare release assets
         shell: bash
         run: |
-          expected_tag="v${{ needs.build-eap.outputs.version }}"
+          expected_tag="heavyx-v${{ needs.build-eap.outputs.version }}"
           if [ "$GITHUB_REF_NAME" != "$expected_tag" ]; then
             echo "Release tag $GITHUB_REF_NAME does not match manifest version ${{ needs.build-eap.outputs.version }}." >&2
             exit 1

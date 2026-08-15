@@ -16,9 +16,16 @@ models/
 # GPU health telemetry
 gpu_health.csv
 
-# ACAP build tree: keep only the shippable .eap, drop intermediates
-acap/**/build/*
-!acap/**/build/*.eap
+# ACAP build trees: eaps are distributed via GitHub Releases, never committed
+acap/**/build/
+legacy/**/build/
+
+# EXCEPTION (deliberate): acap/heavyx/app/model/model.tflite (~21 MB) IS
+# committed — the Docker build requires it in-tree and quantization constants
+# are extracted from it at build time. models/ below stays ignored.
+
+# app/lib/*.so* are required link inputs for the ACAP build — never ignore
+!acap/heavyx/app/lib/*.so*
 
 # local secrets / per-machine config
 steering/config.yaml

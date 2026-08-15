@@ -1,5 +1,5 @@
 /*
- * Image preprocessing module for DetectX
+ * Image preprocessing module for HeavyX
  * Supports multiple scaling modes: stretch, center-crop, and letterbox
  */
 

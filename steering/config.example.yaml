@@ -1,27 +1,27 @@
 # Production template for the off-camera PTZ steering controller.
 # Copy to config.yaml (gitignored) and edit. Password may instead come from
 # env PTZ_PASSWORD. Structure matches ptz_tracker.py (step/velocity modes,
-# mqtt/rtsp/snapshot sources). For a live loaner-test example see
-# config.loaner.yaml.
+# mqtt/rtsp/snapshot sources). NOTE: HeavyX steers on-camera; this tool is
+# the off-camera dev path for cameras without steering.
 
-source: mqtt                 # DetectX on-camera detections (production path)
+source: mqtt                 # HeavyX on-camera detections
 mode: step                   # step (half-way centering, 1 Hz) | velocity (PD)
 
 camera:
-  host: 192.168.1.141        # PTZ camera IP (VAPIX)
+  host: 10.0.0.10        # PTZ camera IP (VAPIX)
   http_port: 80
   user: root
-  # password: pass           # or set env PTZ_PASSWORD
+  # password via env PTZ_PASSWORD
   camera_number: 1
 
 mqtt:
-  host: 127.0.0.1            # broker DetectX publishes to
+  host: 127.0.0.1            # broker HeavyX publishes to
   port: 1883
-  topic: detectx/detection/+ # + = camera serial
+  topic: heavyx/detection/+ # + = camera serial
   # username: ""
   # password: ""
 
-frame:                       # DetectX video resolution (see its /local/detectx/app)
+frame:                       # DetectX video resolution (see /local/heavyx/app)
   width: 856
   height: 640
 

@@ -7,8 +7,8 @@
             "vendor": "Machinery Tracking PoC (based on DetectX by Fred Juhlin)",
             "embeddedSdkVersion": "3.0",
             "vendorUrl": "https://github.com/mrdnlabs/heavyx",
-            "runMode": "once",
-            "version": "1.0.0"
+            "runMode": "respawn",
+            "version": "1.0.1"
         },
         "configuration": {
             "settingPage": "index.html",
@@ -25,11 +25,6 @@
                 },
                 {
                     "name": "status",
-                    "access": "admin",
-                    "type": "fastCgi"
-                },
-                {
-                    "name": "device",
                     "access": "admin",
                     "type": "fastCgi"
                 },
@@ -60,6 +55,11 @@
                 },
                 {
                     "name": "sd_clear",
+                    "access": "admin",
+                    "type": "fastCgi"
+                },
+                {
+                    "name": "tracking",
                     "access": "admin",
                     "type": "fastCgi"
                 }

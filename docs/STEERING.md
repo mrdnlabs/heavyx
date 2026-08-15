@@ -1,3 +1,12 @@
+> **CURRENT (2026-08-15): steering lives in HeavyX** — `acap/heavyx/app/PTZ.c`
+> runs this control law in-process at 1 Hz with a settings-driven sortable
+> priority list (`ptz.priority`; order = precedence, inclusion = followable),
+> margin zoom + edge-touch, EMA (settings `ptz.emaAlpha`), and a JSONL log
+> served at `/local/heavyx/tracking`. Burned-in boxes/stats are drawn by
+> `OVERLAY.c` via axoverlay. Everything below is design history: the
+> off-camera controller (still the dev tool, `steering/ptz_tracker.py`) and
+> the superseded standalone steerx ACAP (`legacy/steerx/`).
+
 # PTZ follow-control design
 
 Goal: keep a detected machine centered and usefully framed, with slow, smooth,
@@ -90,7 +99,7 @@ truck, truck, mobile crane, tower crane, pump truck, concrete mixer, pile
 driver, roller, person. Label strings must match the deployed model's
 labels.txt exactly. Carries the loaner-validated tuning (APPROACH_FRAC 0.33,
 DEADBAND 0.07). Built artifact:
-`acap/steerx/build/SteerX_PTZ_Follow_0_3_0_aarch64.eap`.
+`legacy/steerx/ (see releases poc-v0.3.0/0.4.0 for built artifacts)`.
 
 **Web UI (v0.3.0):** `settingPage` in the manifest adds an "Open" button in the
 camera's Apps list, serving `app/html/index.html` at `/local/steerx/`. The page
@@ -121,7 +130,3 @@ correctly with no machinery to follow). Steering *motion* itself is already
 proven via the off-camera `ptz_tracker.py` (see the follow GIF). Not-yet-ported
 vs the off-camera controller: EMA box-center smoothing and velocity mode.
 
-## Loaner experiment target (Axis Virtual Loan, ends 2026-08-14 21:00)
-
-AXIS Q6358-LE via 195.60.68.14 — HTTP :12091, RTSP :32091, user VLTuser.
-Only PTZ moves and stream reads; no config changes, no app installs.

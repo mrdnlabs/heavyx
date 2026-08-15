@@ -203,7 +203,7 @@ background:#0a0a0a;transition:left .2s}
       <div style="padding:14px 0">
         <div class="h2">STEERING LOG</div>
         <div id="cmdlog" style="background:rgba(7,7,7,.7);border:1px solid var(--line2);padding:8px 10px;min-height:96px"></div>
-        <div style="margin-top:9px"><a class="mono" style="font-size:10.5px;letter-spacing:.06em" href="tracking.log" download>↓ TRACKING LOG (JSONL)</a> <span class="mono" style="font-size:10px;color:var(--dim)">· 1 line/s · <a href="tracking.log.1" download style="color:var(--dim)">previous</a></span></div>
+        <div style="margin-top:9px"><a class="mono" style="font-size:10.5px;letter-spacing:.06em" href="tracking" download="tracking.log">↓ TRACKING LOG (JSONL)</a> <span class="mono" style="font-size:10px;color:var(--dim)">· 1 line/s · <a href="tracking?old=1" download="tracking.log.1" style="color:var(--dim)">previous</a></span></div>
       </div>
     </div>
 
@@ -269,7 +269,7 @@ var S = {
   app: null, settings: null, modelCfg: null, device: null,
   status: null, dets: [], tab: "TRACK", drawer: window.innerWidth >= 760,
   aoiEdit: false, aoiBackup: null, aoiPoints: [], dragging: null,
-  spark: [], cmdlog: [], lastLoggedCmd: null, saveTimer: null,
+  spark: [], cmdlog: [], lastLoggedCmd: null,
   displayOrder: null, enabledSet: null, allLabels: []
 };
 var $ = function (id) { return document.getElementById(id); };

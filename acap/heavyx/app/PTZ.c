@@ -33,15 +33,17 @@
 #include "PTZ.h"
 
 #define MAX_DETS        32
-#define EMA_ALPHA       0.35
+#define EMA_ALPHA_DEFAULT 0.35   /* overridable via settings ptz.emaAlpha */
 #define EDGE_RZOOM      "-2500"
 #define ZOOM_HI         1.15
 #define ZOOM_LO         0.55
 #define ZOOM_STEP_MAX   1.6
 #define ZOOM_STEP_MIN   0.6
 #define SNAPSHOT_MAX_AGE 2.0    /* s — stale detections count as none */
-#define LOG_PATH        "html/tracking.log"
-#define LOG_PATH_OLD    "html/tracking.log.1"
+/* localdata/ is the app-writable dir (html/ is root-owned package content);
+ * served via the "tracking" FastCGI endpoint, not as a static file */
+#define LOG_PATH        "localdata/tracking.log"
+#define LOG_PATH_OLD    "localdata/tracking.log.1"
 
 typedef struct {
     char label[64];
@@ -126,6 +128,37 @@ static void log_tick(const char *fmt, ...) {
     fclose(f);
 }
 
+/* GET /local/heavyx/tracking[?old=1] — stream the JSONL tick log.
+ * Read-only (GET side-effect-free per the ACAP standards). */
+static void HTTP_ENDPOINT_tracking(ACAP_HTTP_Response response,
+                                   const ACAP_HTTP_Request request) {
+    const char *method = ACAP_HTTP_Get_Method(request);
+    if (method && strcmp(method, "GET") != 0) {
+        ACAP_HTTP_Respond_Error(response, 405, "GET only");
+        return;
+    }
+    const char *old = ACAP_HTTP_Request_Param(request, "old");
+    char path[512];
+    snprintf(path, sizeof(path), "%s%s", ACAP_FILE_AppPath(),
+             (old && old[0] == '1') ? LOG_PATH_OLD : LOG_PATH);
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        ACAP_HTTP_Respond_Error(response, 404, "no tracking log yet");
+        return;
+    }
+    fseek(f, 0, SEEK_END);
+    long sz = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    if (sz <= 0) { fclose(f); ACAP_HTTP_Respond_Text(response, ""); return; }
+    char *buf = malloc((size_t)sz + 1);
+    if (!buf) { fclose(f); ACAP_HTTP_Respond_Error(response, 500, "oom"); return; }
+    size_t n = fread(buf, 1, (size_t)sz, f);
+    fclose(f);
+    buf[n] = 0;
+    ACAP_HTTP_Respond_Text(response, buf);
+    free(buf);
+}
+
 static void set_tracking(int on, const char *label) {
     if (on != tracking_state) {
         tracking_state = on;
@@ -143,6 +176,14 @@ static gboolean ptz_tick(gpointer data) {
     (void)data;
     tick_count++;
     ACAP_STATUS_SetNumber("ptz", "ticks", tick_count);
+
+    /* keep the published priority list in sync with live settings (the UI
+     * edits it at runtime; a stale init-time snapshot misleads monitoring) */
+    cJSON *pcfg = ptz_cfg();
+    cJSON *prio_now = pcfg ? cJSON_GetObjectItem(pcfg, "priority") : NULL;
+    ACAP_STATUS_SetObject("ptz", "priority",
+                          prio_now ? cJSON_Duplicate(prio_now, 1)
+                                   : cJSON_CreateArray());
 
     if (!ptz_supported || !cfg_bool("enabled", 0)) {
         set_tracking(0, NULL);
@@ -223,14 +264,17 @@ static gboolean ptz_tick(gpointer data) {
     /* EMA on normalized (video-space) center + size */
     double cx = (bx + bw / 2.0) / vw, cy = (by + bh / 2.0) / vh;
     double nw = bw / vw, nh = bh / vh;
+    double alpha = cfg_num("emaAlpha", EMA_ALPHA_DEFAULT);
+    if (alpha < 0.05) alpha = 0.05;
+    if (alpha > 1.0) alpha = 1.0;
     if (!ema_init) {
         ema_cx = cx; ema_cy = cy; ema_w = nw; ema_h = nh;
         ema_init = 1;
     } else {
-        ema_cx = EMA_ALPHA * cx + (1 - EMA_ALPHA) * ema_cx;
-        ema_cy = EMA_ALPHA * cy + (1 - EMA_ALPHA) * ema_cy;
-        ema_w  = EMA_ALPHA * nw + (1 - EMA_ALPHA) * ema_w;
-        ema_h  = EMA_ALPHA * nh + (1 - EMA_ALPHA) * ema_h;
+        ema_cx = alpha * cx + (1 - alpha) * ema_cx;
+        ema_cy = alpha * cy + (1 - alpha) * ema_cy;
+        ema_w  = alpha * nw + (1 - alpha) * ema_w;
+        ema_h  = alpha * nh + (1 - alpha) * ema_h;
     }
 
     double margin = cfg_num("marginPercent", 33) / 100.0;
@@ -293,6 +337,24 @@ void PTZ_Feed(cJSON *detections, int modelWidth, int modelHeight) {
     feed_model_w = modelWidth;
     feed_model_h = modelHeight;
     int n = 0;
+    /* B4: on fixed cameras (or steering disabled) the tick never runs the
+     * stats path — publish a detection summary here so the burned-in footer
+     * is alive everywhere. OVERLAY_SetStats dedups, so per-frame is cheap. */
+    if (!ptz_supported || !cfg_bool("enabled", 0)) {
+        int cnt = detections ? cJSON_GetArraySize(detections) : 0;
+        char line[96];
+        if (cnt == 0) {
+            line[0] = 0;   /* clean frame: no footer */
+        } else {
+            cJSON *first = cJSON_GetArrayItem(detections, 0);
+            cJSON *lbl = first ? cJSON_GetObjectItem(first, "label") : NULL;
+            snprintf(line, sizeof(line), "HeavyX: %d object%s%s%s", cnt,
+                     cnt == 1 ? "" : "s",
+                     lbl && lbl->valuestring ? " · " : "",
+                     lbl && lbl->valuestring ? lbl->valuestring : "");
+        }
+        OVERLAY_SetStats(line);
+    }
     cJSON *d = detections ? detections->child : NULL;
     for (; d && n < MAX_DETS; d = d->next) {
         cJSON *label = cJSON_GetObjectItem(d, "label");
@@ -342,6 +404,7 @@ int PTZ_Init(cJSON *settings) {
                           prio ? cJSON_Duplicate(prio, 1) : cJSON_CreateArray());
 
     ACAP_EVENTS_Add_Event("tracking", "HeavyX: Tracking", 1);
+    ACAP_HTTP_Node("tracking", HTTP_ENDPOINT_tracking);
 
     tick_source = g_timeout_add_seconds(1, ptz_tick, NULL);
     syslog(LOG_INFO, "ptz init: supported=%d enabled=%d",

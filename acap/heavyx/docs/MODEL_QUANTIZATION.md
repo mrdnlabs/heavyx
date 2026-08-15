@@ -1,3 +1,7 @@
+> HeavyX note: the model is baked in at build time — after training,
+> replace `app/model/model.tflite` + `labels.txt` and rebuild the .eap.
+> Runtime upload is only safe with identical quantization parameters.
+
 # Model Quantization Parameters
 
 ## Overview
@@ -78,7 +82,7 @@ The build process automatically extracts all parameters from your new model!
 
 **Incorrect detections or confidence values:**
 - Verify model quantization in Netron matches build output
-- Check camera logs for quantization values: `journalctl -f -u detectx`
+- Check camera logs for quantization values: `journalctl -f -u heavyx`
 - Compare build output with Netron inspection
 
 ## Comparison with Legacy prepare.py

@@ -1,0 +1,7 @@
+*.eap
+*.o
+build/
+*.log
+.git
+docs
+pictures

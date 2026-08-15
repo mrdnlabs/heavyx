@@ -1,4 +1,8 @@
-## Custom DetectX
+> HeavyX note: the model is baked in at build time — after training,
+> replace `app/model/model.tflite` + `labels.txt` and rebuild the .eap.
+> Runtime upload is only safe with identical quantization parameters.
+
+## Custom HeavyX model
 
 DetectX is an open-source package designed for developers and integrators who wish to train or deploy a YOLOv5 object detection model directly on Axis cameras with ARTPEC-8.
 While Axis cameras offer robust built-in object detection analytics for common use cases, some scenarios require more specialized detection.

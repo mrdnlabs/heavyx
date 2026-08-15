@@ -8,7 +8,7 @@ latency is fine.
 
 | Camera | Role | SoC | Verdict |
 |--------|------|-----|---------|
-| AXIS P3408-VE (192.168.1.141, test) | fixed dome, detection testbed | ARTPEC-9 DLPU | in use — DetectX + custom models run on DLPU |
+| AXIS P3408-VE (LAN test unit) | fixed dome, detection testbed | ARTPEC-9 DLPU | runs HeavyX 1.0.x (detection + overlay; steering auto-disabled) |
 | AXIS Q6355-LE (to procure) | PTZ for steering demo + site | ARTPEC-9 DLPU | recommended |
 | AXIS P5655-E (customer site today) | ARTPEC-7, no DLPU | not viable for YOLO (~211 ms SSD only) | replace or add edge box |
 
@@ -75,12 +75,6 @@ latency is fine.
 ## Open items
 
 1. Procure ARTPEC-9 PTZ (Q6355-LE) for the steering half.
-2. MQTT broker for steering tests (mosquitto in WSL or on LAN).
-3. Consider filling MOCS survey / ACID form for the full sets (mind licenses).
+3. MOCS is CC BY-NC and ACID research-only — PoC use fine; keep out of the
+   commercial model lineage (customer-footage retrain is the clean path).
 4. Ultralytics AGPL: PoC fine; commercial ACAP needs license or arch swap.
-5. Prior-session branch `claude/machinery-tracking-acap-nwa321` on
-   pettheory/scratchpad was never pushed — this local repo is the source of
-   truth (not yet git-initialized/pushed anywhere).
-6. Restore DetectX confidence 40 → 50 after live testing (set to 40 for the
-   monitor demo); consider raising WSL memory back down if host RAM gets tight
-   (now 16GB, was 6GB).

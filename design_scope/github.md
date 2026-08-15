@@ -13,7 +13,11 @@ date: 2026-08-15T00:58:48Z
 ## Screen map
 | Project screen | Repo files |
 |---|---|
-| HeavyX.dc.html | acap/steerx/app/html/index.html, acap/steerx/app/manifest.json, steering/config.example.yaml, docs/STEERING.md |
-| Live A - Console.dc.html | acap/steerx/app/html/index.html, steering/config.example.yaml, docs/STEERING.md |
-| Live B - Signal HUD.dc.html | acap/steerx/app/html/index.html, acap/steerx/app/manifest.json, docs/STEERING.md |
-| Live C - Field.dc.html | acap/steerx/app/html/index.html, steering/config.example.yaml |
+| HeavyX.dc.html | acap/heavyx/app/html/index.html, acap/heavyx/app/manifest.json, steering/config.example.yaml, docs/STEERING.md |
+| Live A - Console.dc.html | acap/heavyx/app/html/index.html, steering/config.example.yaml, docs/STEERING.md |
+| Live B - Signal HUD.dc.html | acap/heavyx/app/html/index.html, acap/heavyx/app/manifest.json, docs/STEERING.md |
+| Live C - Field.dc.html | acap/heavyx/app/html/index.html, steering/config.example.yaml |
+
+
+## Implementation status
+Implemented 2026-08-14 as acap/heavyx/app/html/index.html (Signal HUD direction).

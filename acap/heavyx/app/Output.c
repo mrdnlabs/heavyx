@@ -382,16 +382,6 @@ void Output(cJSON* detections, int modelWidth, int modelHeight) {
 }
 
 // Reset all state/crop API/eventsCache
-void Output_reset(void) {
-    LOG_TRACE("<%s\n", __func__);
-    eventsCache_len = 0;
-    lastDetectionsWereEmpty = 0;
-    last_output_time_ms = 0;
-    last_sd_output_time_ms = 0;
-    sd_any_event_was_active = 0;
-    output_crop_cache_reset();
-    LOG_TRACE("%s>\n", __func__);
-}
 
 // Initialization
 void Output_init(void) {
@@ -411,7 +401,7 @@ void Output_init(void) {
     cJSON* label = labels->child;
     while (label) {
         if (cJSON_IsString(label)) {
-            char niceName[32];
+            char niceName[64];
             snprintf(niceName, sizeof(niceName), "HeavyX: %s", label->valuestring);
             char* labelCopy = strdup(label->valuestring);
             if (labelCopy) {

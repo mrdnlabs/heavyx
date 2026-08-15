@@ -2,7 +2,6 @@
  * @file output.h
  * @brief Output control for detections/results, crop API, and status/event states.
  *
- * Provides Output(), Output_init(), and Output_reset() entry points for the
  * core application. Handles exporting output to MQTT, SD card, HTTP API,
  * and maintains transient state for event activation/deactivation.
  */
@@ -24,7 +23,6 @@ void Output(cJSON* detectionList, int modelWidth, int modelHeight);
 /**
  * @brief Resets all output and event/transient state (crop cache, timers).
  */
-void Output_reset(void);
 
 /**
  * @brief Registers HTTP endpoint for crop API and sets up event state labels.

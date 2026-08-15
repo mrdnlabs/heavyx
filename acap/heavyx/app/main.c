@@ -33,9 +33,6 @@
 
 cJSON* settings = 0;
 cJSON* model = 0;
-cJSON* eventsTransition = 0;
-cJSON* eventLabelCounter = 0;
-GTimer *cleanupTransitionTimer = 0;
 static int restartPending = 0;
 
 static int point_in_polygon(cJSON* points, double px, double py) {
@@ -372,7 +369,6 @@ migrate_settings_to_pixel_coordinates(cJSON* settings, int modelWidth, int model
 }
 
 
-VdoMap *capture_VDO_map = NULL;
 
 int inferenceCounter = 0;
 unsigned int inferenceAverage = 0;
@@ -583,12 +579,6 @@ ImageProcess(gpointer data) {
 	return G_SOURCE_CONTINUE;
 }
 
-void HTTP_ENDPOINT_eventsTransition(const ACAP_HTTP_Response response,const ACAP_HTTP_Request request) {
-	if( !eventsTransition )
-		eventsTransition = cJSON_CreateObject();
-	ACAP_HTTP_Respond_JSON(  response, eventsTransition);
-}
-
 /* ------------------------------------------------------------------
  * SD Capture: download zip and clear endpoints
  * ------------------------------------------------------------------ */
@@ -733,40 +723,6 @@ MAIN_STATUS_Timer() {
 }
 
 
-int
-Setup_SD_Card() {
-    const char* sd_mount = "/var/spool/storage/SD_DISK";
-    const char* heavyx_dir = "/var/spool/storage/SD_DISK/heavyx";
-
-    struct stat sb;
-
-    // Check if SD mount point exists and is a directory
-    if (stat(sd_mount, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
-        ACAP_STATUS_SetBool("SDCARD", "available", 0);
-        LOG("SD Card not detected");
-        return 0;
-    }
-
-    // Check if DetectX directory exists
-    if (stat(heavyx_dir, &sb) != 0) {
-        // Not found: try to create the directory with appropriate access rights
-        if (mkdir(heavyx_dir, 0770) != 0) {
-            ACAP_STATUS_SetBool("SDCARD", "available", 0);
-	        LOG_WARN("SD Card detected but could not create directory %s: %s\n", heavyx_dir, strerror(errno));
-            return 0;
-        }
-    } else if (!S_ISDIR(sb.st_mode)) {
-        // Exists but is not a directory
-        ACAP_STATUS_SetBool("SDCARD", "available", 0);
-        LOG_WARN("Error: SD Card structure propblem\n");
-        return 0;
-    }
-
-    ACAP_STATUS_SetBool("SDCARD", "available", 1);
-	LOG("SD Card is ready to be used\n");
-    return 1;
-}
-
 int main(void) {
 	setbuf(stdout, NULL);
 	unsigned int videoWidth = 800;
@@ -785,10 +741,6 @@ int main(void) {
 		LOG_WARN("No settings found\n");
 		return 1;
 	}
-
-//	Setup_SD_Card();
-
-	eventLabelCounter = cJSON_CreateObject();
 
 	model = Model_Setup();
 	const char* json = cJSON_PrintUnformatted(model);

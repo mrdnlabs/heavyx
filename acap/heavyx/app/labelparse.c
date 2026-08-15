@@ -1,5 +1,5 @@
 /*
- * Label file parser for DetectX
+ * Label file parser for HeavyX
  * Reads labels.txt at runtime instead of embedding in model.json
  */
 
