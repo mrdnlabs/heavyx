@@ -1,0 +1,10 @@
+HeavyX — Heavy Machinery Detection & PTZ Follow
+
+Based on DetectX by Fred Juhlin (https://github.com/pandosme/DetectX), MIT
+license — see app/LICENSE. PTZ follow logic derived from the steerx ACAP in
+this repository (MIT).
+
+The bundled model weights (app/model/model.tflite) are derived from YOLOv5
+(Ultralytics, AGPL-3.0) fine-tuned on public construction datasets. The
+weights license is independent of the source license: review AGPL obligations
+before any commercial redistribution of this package.

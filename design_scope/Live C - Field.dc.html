@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#10141a;color:#eef2f7;font-family:'Barlow',system-ui,sans-serif}
+a{color:#47b8e0;text-decoration:none}a:hover{color:#7fd0ee;text-decoration:underline}
+@keyframes hxPulse{0%,100%{opacity:1}50%{opacity:.3}}
+input[type="range"]{accent-color:#47b8e0;width:100%;margin:0;height:28px}
+button{cursor:pointer}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;min-height:100vh">
+  <header style="display:flex;align-items:center;gap:20px;height:62px;padding:0 20px;background:#141922;border-bottom:1px solid #232c38;flex:none;flex-wrap:wrap">
+    <div>
+      <div style="font:800 19px 'Barlow',sans-serif;letter-spacing:.08em">HEAVYX</div>
+      <div style="font:500 10px 'IBM Plex Mono',monospace;color:#90a0b3;letter-spacing:.06em">Q6355-LE · EAST GATE</div>
+    </div>
+    <div style="display:flex;background:#0d1117;border:1px solid #232c38;border-radius:9px;padding:3px;gap:3px">
+      <button style="height:38px;padding:0 22px;border:none;border-radius:7px;background:#47b8e0;color:#08131a;font:700 13px 'Barlow',sans-serif;letter-spacing:.08em">MONITOR</button>
+      <button style="height:38px;padding:0 22px;border:none;border-radius:7px;background:transparent;color:#90a0b3;font:600 13px 'Barlow',sans-serif;letter-spacing:.08em">CONFIGURE</button>
+    </div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="display:flex;align-items:center;gap:6px"><div style="{{ modelDotStyle }}"></div><span style="font:600 10px 'IBM Plex Mono',monospace;color:#90a0b3;letter-spacing:.08em">MODEL</span></div>
+      <div style="display:flex;align-items:center;gap:6px"><div style="{{ overlayDotStyle }}"></div><span style="font:600 10px 'IBM Plex Mono',monospace;color:#90a0b3;letter-spacing:.08em">OVERLAY</span></div>
+      <div style="display:flex;align-items:center;gap:6px"><div style="{{ ptzDotStyle }}"></div><span style="font:600 10px 'IBM Plex Mono',monospace;color:#90a0b3;letter-spacing:.08em">PTZ</span></div>
+    </div>
+  </header>
+  <main style="flex:1;overflow:auto;padding:18px 20px 24px;display:flex;flex-direction:column;gap:16px;max-width:1240px;width:100%;margin:0 auto;box-sizing:border-box">
+    <sc-if value="{{ offline }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;gap:12px;align-items:center;background:rgba(224,120,64,.08);border:1px solid rgba(224,120,64,.5);border-radius:10px;padding:12px 16px">
+        <div style="width:10px;height:10px;border-radius:50%;background:#e07840;animation:hxPulse 1.2s infinite;flex:none"></div>
+        <div style="flex:1;font:500 13px/1.5 'Barlow',sans-serif;color:#f0d5c4">Camera unreachable — status poll failed 3×. Retrying every 5 s over the cellular link. Last contact 12:04:31.</div>
+        <button style="background:none;border:1px solid #e07840;color:#e07840;border-radius:8px;font:700 11px 'Barlow',sans-serif;letter-spacing:.08em;padding:9px 14px;flex:none">RETRY NOW</button>
+      </div>
+    </sc-if>
+    <div style="position:relative;width:100%;aspect-ratio:16/9;background:#000;border:1px solid #232c38;border-radius:10px;overflow:hidden;flex:none">
+      <div style="position:absolute;inset:0"><image-slot id="hx-live-c" shape="rect" placeholder="SITE VIEW — drop a still from the camera. Live app embeds media-stream-player (H.264)."></image-slot></div>
+      <div style="{{ guideStyle }}"></div>
+      <sc-for list="{{ boxes }}" as="b" hint-placeholder-count="2">
+        <div style="{{ b.boxStyle }}"><div style="{{ b.tagStyle }}">{{ b.tag }}</div></div>
+      </sc-for>
+      <sc-if value="{{ offline }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(16,20,26,.72);display:flex;align-items:center;justify-content:center">
+          <div style="text-align:center">
+            <div style="font:800 26px 'Barlow',sans-serif;letter-spacing:.14em;color:#e07840">NO SIGNAL</div>
+            <div style="margin-top:6px;font:500 11px 'IBM Plex Mono',monospace;color:#90a0b3">stream + status unreachable · retrying</div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:14px">
+      <section style="background:#171d26;border:1px solid #232c38;border-radius:10px;padding:14px 16px">
+        <div style="font:600 10px 'IBM Plex Mono',monospace;color:#90a0b3;letter-spacing:.14em">TRACKING</div>
+        <div style="margin-top:8px;font:700 23px 'Barlow',sans-serif">{{ targetTitle }}</div>
+        <div style="margin-top:3px;font:500 11.5px 'IBM Plex Mono',monospace;color:#90a0b3">{{ targetMeta }}</div>
+      </section>
+      <section style="background:#171d26;border:1px solid #232c38;border-radius:10px;padding:14px 16px">
+        <div style="font:600 10px 'IBM Plex Mono',monospace;color:#90a0b3;letter-spacing:.14em">PTZ POSITION</div>
+        <div style="margin-top:8px;display:flex;gap:18px">
+          <div><div style="font:600 17px 'IBM Plex Mono',monospace">{{ pan }}</div><div style="font:500 9.5px 'IBM Plex Mono',monospace;color:#90a0b3;letter-spacing:.1em">PAN</div></div>
+          <div><div style="font:600 17px 'IBM Plex Mono',monospace">{{ tilt }}</div><div style="font:500 9.5px 'IBM Plex Mono',monospace;color:#90a0b3;letter-spacing:.1em">TILT</div></div>
+          <div><div style="font:600 17px 'IBM Plex Mono',monospace">{{ zoom }}</div><div style="font:500 9.5px 'IBM Plex Mono',monospace;color:#90a0b3;letter-spacing:.1em">ZOOM</div></div>
+        </div>
+        <div style="margin-top:8px;font:500 10.5px 'IBM Plex Mono',monospace;color:#90a0b3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">cmd {{ lastCmd }}</div>
+      </section>
+      <section style="background:#171d26;border:1px solid #232c38;border-radius:10px;padding:14px 16px">
+        <div style="font:600 10px 'IBM Plex Mono',monospace;color:#90a0b3;letter-spacing:.14em">HEALTH</div>
+        <div style="margin-top:9px;display:flex;flex-direction:column;gap:7px;font:500 12px 'Barlow',sans-serif">
+          <div style="display:flex;align-items:center;gap:8px"><div style="{{ hModelDot }}"></div><span style="flex:1">Model</span><span style="font:500 11px 'IBM Plex Mono',monospace;color:#90a0b3">{{ hModel }}</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><div style="{{ hOverlayDot }}"></div><span style="flex:1">Overlay</span><span style="font:500 11px 'IBM Plex Mono',monospace;color:#90a0b3">{{ hOverlay }}</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><div style="{{ hSteerDot }}"></div><span style="flex:1">Steering</span><span style="font:500 11px 'IBM Plex Mono',monospace;color:#90a0b3">{{ hSteer }}</span></div>
+        </div>
+      </section>
+      <section style="background:#171d26;border:1px solid #232c38;border-radius:10px;padding:14px 16px">
+        <div style="font:600 10px 'IBM Plex Mono',monospace;color:#90a0b3;letter-spacing:.14em">EVENTS · {{ eventCount }} ACTIVE</div>
+        <div style="margin-top:9px;display:flex;flex-wrap:wrap;gap:7px">
+          <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
+            <span style="{{ c.style }}">{{ c.label }}</span>
+          </sc-for>
+        </div>
+        <div style="margin-top:9px;font:500 10.5px 'IBM Plex Mono',monospace;color:#5c6b7d">person — ignored by events</div>
+      </section>
+    </div>
+    <section style="background:#171d26;border:1px solid #232c38;border-radius:12px;padding:16px 18px">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:14px">
+        <span style="font:700 13px 'Barlow',sans-serif;letter-spacing:.1em">QUICK CONTROLS</span>
+        <div style="flex:1"></div>
+        <a href="#" style="font:600 12px 'Barlow',sans-serif;letter-spacing:.04em">All settings →</a>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px;align-items:start">
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+            <span style="font:600 13px 'Barlow',sans-serif">Confidence threshold</span>
+            <span style="font:600 15px 'IBM Plex Mono',monospace;color:#47b8e0">{{ threshold }}%</span>
+          </div>
+          <input type="range" min="0" max="100" value="{{ threshold }}" onChange="{{ setThreshold }}">
+          <div style="font:400 11px 'Barlow',sans-serif;color:#90a0b3;margin-top:4px">Detections below this are hidden and never steered to.</div>
+        </div>
+        <div>
+          <div style="font:600 13px 'Barlow',sans-serif;margin-bottom:8px">Follow margin</div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <button style="width:48px;height:44px;border-radius:9px;border:1px solid #2a3442;background:#0d1117;color:#eef2f7;font:700 20px 'Barlow',sans-serif" onClick="{{ decMargin }}">−</button>
+            <span style="font:600 21px 'IBM Plex Mono',monospace;min-width:64px;text-align:center">{{ margin }}%</span>
+            <button style="width:48px;height:44px;border-radius:9px;border:1px solid #2a3442;background:#0d1117;color:#eef2f7;font:700 20px 'Barlow',sans-serif" onClick="{{ incMargin }}">+</button>
+          </div>
+          <div style="font:400 11px 'Barlow',sans-serif;color:#90a0b3;margin-top:6px">Machine is kept inside the centre zone (shown on video).</div>
+        </div>
+        <div>
+          <div style="font:600 13px 'Barlow',sans-serif;margin-bottom:8px">Camera steering</div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <button style="{{ toggleTrackStyle }}" onClick="{{ toggleSteering }}"><div style="{{ toggleKnobStyle }}"></div></button>
+            <span style="font:500 12px 'IBM Plex Mono',monospace;color:#90a0b3">{{ steerText }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;offline&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Simulate&quot;}}">
+class Component extends DCLogic {
+  state = { t: 0, threshold: 40, margin: 33, steering: true };
+  componentDidMount() { this.timer = setInterval(() => this.setState(s => ({ t: s.t + 1 })), 900); }
+  componentWillUnmount() { clearInterval(this.timer); }
+  renderVals() {
+    const { t, threshold, margin: m, steering } = this.state;
+    const off = this.props.offline ?? false;
+    const w = (a, p, ph) => a * Math.sin(t / p + ph);
+    const raw = off ? [] : [
+      { label: "excavator", c: Math.min(98, Math.round(94 + w(2, 3, 0))), x: 40 + w(4, 9, 0), y: 30 + w(1.5, 11, 2), bw: 26, bh: 31 },
+      { label: "dump truck", c: Math.round(86 + w(2, 4, 1)), x: 66 + w(1.5, 13, 1), y: 54, bw: 18, bh: 16 },
+      { label: "person", c: Math.round(71 + w(4, 3, 2)), x: 16 + ((t * 1.1) % 18), y: 60, bw: 4.5, bh: 15 }
+    ].filter(d => d.c >= threshold);
+    const target = raw.find(d => d.label === "excavator") || null;
+    const boxes = raw.map(d => {
+      const isT = target && d.label === target.label;
+      return {
+        key: d.label, tag: d.label + " " + d.c + "%",
+        boxStyle: { position: "absolute", left: d.x + "%", top: d.y + "%", width: d.bw + "%", height: d.bh + "%", border: isT ? "3px solid #47b8e0" : "2px solid rgba(238,242,247,.6)", borderRadius: "3px", pointerEvents: "none" },
+        tagStyle: { position: "absolute", top: "-26px", left: "-2px", whiteSpace: "nowrap", font: "700 13px 'Barlow',sans-serif", letterSpacing: ".02em", padding: "2px 8px", borderRadius: "4px", background: isT ? "#47b8e0" : "rgba(16,20,26,.85)", color: isT ? "#08131a" : "#eef2f7" }
+      };
+    });
+    const cyc = ["center 402,381", "— deadband", "center 396,377", "areazoom 0.86", "— deadband", "center 401,380"];
+    const mkDot = (col, pulse) => ({ width: "9px", height: "9px", borderRadius: "50%", background: col, animation: pulse ? "hxPulse 1.4s infinite" : "none", flex: "none" });
+    const gray = "#3a4655", ok = "#3ecf8e";
+    const chips = (off ? [] : ["excavator", "dump truck"]).map(l => ({
+      key: l, label: l,
+      style: { padding: "5px 12px", borderRadius: "999px", background: "rgba(62,207,142,.1)", border: "1px solid rgba(62,207,142,.35)", font: "600 12px 'Barlow',sans-serif", color: "#bfe9d7" }
+    }));
+    return {
+      offline: off,
+      modelDotStyle: mkDot(off ? gray : ok, false), overlayDotStyle: mkDot(off ? gray : ok, false), ptzDotStyle: mkDot(off ? gray : ok, !off && steering && !!target),
+      guideStyle: { position: "absolute", left: (50 - m / 2) + "%", top: (50 - m / 2) + "%", width: m + "%", height: m + "%", border: "1.5px dashed rgba(71,184,224,.55)", borderRadius: "6px", pointerEvents: "none", transition: "all .2s", display: off ? "none" : "block" },
+      boxes,
+      targetTitle: off ? "—" : target ? target.label : "no machinery",
+      targetMeta: off ? "no data" : target ? target.c + "% · max-dim " + Math.max(target.bw, target.bh) + "% of frame" : "waiting for detections",
+      pan: off ? "—" : (-12.4 + w(.6, 7, 0)).toFixed(1) + "°", tilt: off ? "—" : (-8.2 + w(.3, 9, 1)).toFixed(1) + "°", zoom: off ? "—" : (3.4 + w(.05, 11, 0)).toFixed(2) + "×",
+      lastCmd: off ? "—" : !steering ? "— steering off" : cyc[t % 6],
+      hModelDot: mkDot(off ? gray : ok, false), hModel: off ? "unknown" : "OK · " + (37 + Math.round(w(3, 4, 1))) + " ms",
+      hOverlayDot: mkDot(off ? gray : ok, false), hOverlay: off ? "unknown" : "burned-in · 24 fps",
+      hSteerDot: mkDot(off ? gray : steering ? ok : "#8a959c", false), hSteer: off ? "unknown" : steering ? "step · 1 Hz" : "disabled",
+      eventCount: off ? 0 : chips.length, chips,
+      threshold, setThreshold: e => this.setState({ threshold: +e.target.value }),
+      margin: m,
+      incMargin: () => this.setState(s => ({ margin: Math.min(90, s.margin + 1) })),
+      decMargin: () => this.setState(s => ({ margin: Math.max(10, s.margin - 1) })),
+      toggleSteering: () => this.setState(s => ({ steering: !s.steering })),
+      toggleTrackStyle: { width: "58px", height: "32px", borderRadius: "999px", border: "none", background: steering ? "#47b8e0" : "#2a3442", position: "relative", padding: 0, transition: "background .2s", flex: "none" },
+      toggleKnobStyle: { position: "absolute", top: "4px", left: steering ? "30px" : "4px", width: "24px", height: "24px", borderRadius: "50%", background: "#eef2f7", transition: "left .2s" },
+      steerText: steering ? "ON · step mode · 1 Hz" : "OFF — camera holds position"
+    };
+  }
+}
+</script>
+</body>
+</html>

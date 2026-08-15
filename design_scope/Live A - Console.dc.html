@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#0b0d0e;color:#e8ecee;font-family:'IBM Plex Sans',system-ui,sans-serif}
+a{color:#e8b13f;text-decoration:none}a:hover{color:#f0c968;text-decoration:underline}
+@keyframes hxPulse{0%,100%{opacity:1}50%{opacity:.3}}
+input[type="range"]{accent-color:#3fd68f;width:100%;margin:0}
+button{cursor:pointer}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;height:100vh;min-height:740px">
+  <header style="display:flex;align-items:center;gap:18px;height:48px;padding:0 16px;background:#0e1113;border-bottom:1px solid #23282c;flex:none">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:13px;height:13px;border:2.5px solid #e8b13f"></div>
+      <span style="font:600 14px 'IBM Plex Mono',monospace;letter-spacing:.16em">HEAVYX</span>
+    </div>
+    <span style="font:400 11px 'IBM Plex Mono',monospace;color:#8a959c;letter-spacing:.03em">AXIS Q6355-LE · 192.168.1.141</span>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div style="display:flex;align-items:center;gap:7px"><div style="{{ modelDotStyle }}"></div><span style="font:500 10px 'IBM Plex Mono',monospace;color:#8a959c;letter-spacing:.1em">MODEL</span></div>
+      <div style="display:flex;align-items:center;gap:7px"><div style="{{ overlayDotStyle }}"></div><span style="font:500 10px 'IBM Plex Mono',monospace;color:#8a959c;letter-spacing:.1em">OVERLAY</span></div>
+      <div style="display:flex;align-items:center;gap:7px"><div style="{{ ptzDotStyle }}"></div><span style="font:500 10px 'IBM Plex Mono',monospace;color:#8a959c;letter-spacing:.1em">PTZ</span></div>
+      <span style="font:500 11px 'IBM Plex Mono',monospace;color:#e8ecee">{{ ms }}</span>
+    </div>
+  </header>
+  <div style="display:flex;flex:1;min-height:0">
+    <nav style="width:170px;flex:none;background:#0e1113;border-right:1px solid #23282c;display:flex;flex-direction:column;padding:12px 0;gap:2px">
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 16px;font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#e8ecee;background:#15181b"><span style="width:6px;height:6px;background:#e8b13f;flex:none"></span>LIVE VIEW</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 16px;font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#8a959c"><span style="width:6px;height:6px;border:1px solid #3a4147;flex:none"></span>TRACKING</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 16px;font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#8a959c"><span style="width:6px;height:6px;border:1px solid #3a4147;flex:none"></span>EVENTS</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 16px;font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#8a959c"><span style="width:6px;height:6px;border:1px solid #3a4147;flex:none"></span>OUTPUTS</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 16px;font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#8a959c"><span style="width:6px;height:6px;border:1px solid #3a4147;flex:none"></span>MODEL</a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:9px 16px;font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#8a959c"><span style="width:6px;height:6px;border:1px solid #3a4147;flex:none"></span>ABOUT</a>
+      <div style="flex:1"></div>
+      <div style="padding:12px 16px;font:400 9.5px/1.8 'IBM Plex Mono',monospace;color:#5c666d;letter-spacing:.05em">FW 12.10.68<br>STEERX 0.4.0<br>UPTIME 6D 04H</div>
+    </nav>
+    <main style="flex:1;min-width:0;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px">
+      <sc-if value="{{ modelFault }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:14px;align-items:flex-start;background:rgba(232,93,77,.06);border:1px solid rgba(232,93,77,.45);padding:12px 14px;flex:none">
+          <div style="width:8px;height:8px;background:#e85d4d;margin-top:5px;animation:hxPulse 1.2s infinite;flex:none"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.08em;color:#f0a094">MODEL INITIALIZATION FAILED</div>
+            <div style="margin-top:4px;font:400 12px/1.55 'IBM Plex Sans',sans-serif;color:#c9d2d7">machinery_stage3_int8.tflite did not load on the DLPU. Detection, events and steering are stopped — the video stream itself is unaffected. Likely cause: quantization parameters don't match the baked-in model.</div>
+          </div>
+          <div style="display:flex;gap:8px;flex:none">
+            <button style="background:none;border:1px solid #e8b13f;color:#e8b13f;font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:7px 12px">RESTART APP</button>
+            <button style="background:none;border:1px solid #3a4147;color:#8a959c;font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:7px 12px">VIEW LOG</button>
+          </div>
+        </div>
+      </sc-if>
+      <div style="position:relative;width:100%;aspect-ratio:16/9;background:#000;border:1px solid #23282c;flex:none">
+        <div style="position:absolute;inset:0"><image-slot id="hx-live-a" shape="rect" placeholder="SITE VIEW — drop a still from the camera. Live app embeds media-stream-player (H.264)."></image-slot></div>
+        <sc-for list="{{ boxes }}" as="b" hint-placeholder-count="2">
+          <div style="{{ b.boxStyle }}"><div style="{{ b.tagStyle }}">{{ b.tag }}</div></div>
+        </sc-for>
+        <div style="position:absolute;left:10px;bottom:10px;background:rgba(11,13,14,.82);border:1px solid #23282c;padding:4px 9px;font:400 9.5px 'IBM Plex Mono',monospace;color:#8a959c;letter-spacing:.06em;pointer-events:none">OVERLAY 1 HZ · BOXES BURNED IN-STREAM AT 24 FPS</div>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <section style="flex:1 1 300px;background:#121517;border:1px solid #23282c;padding:12px 14px">
+          <h2 style="margin:0 0 10px;font:600 10px 'IBM Plex Mono',monospace;color:#8a959c;letter-spacing:.14em">DETECTIONS · LAST 60 S</h2>
+          <svg viewBox="0 0 240 40" preserveAspectRatio="none" style="width:100%;height:44px;display:block">
+            <polyline points="{{ sparkPoints }}" style="fill:none;stroke:#3fd68f;stroke-width:1.4"></polyline>
+          </svg>
+        </section>
+        <section style="flex:1 1 300px;background:#121517;border:1px solid #23282c;padding:12px 14px">
+          <h2 style="margin:0 0 10px;font:600 10px 'IBM Plex Mono',monospace;color:#8a959c;letter-spacing:.14em">EVENT LABELS · LIVE</h2>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <sc-for list="{{ chips }}" as="c" hint-placeholder-count="4">
+              <span style="{{ c.chipStyle }}"><span style="{{ c.dotStyle }}"></span>{{ c.label }}</span>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </main>
+    <aside style="width:312px;flex:none;border-left:1px solid #23282c;background:#0e1113;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:22px">
+      <section>
+        <h2 style="margin:0 0 10px;font:600 10px 'IBM Plex Mono',monospace;color:#8a959c;letter-spacing:.14em">TRACKING TARGET</h2>
+        <sc-if value="{{ hasTarget }}" hint-placeholder-val="{{ true }}">
+          <div style="font:600 22px 'IBM Plex Mono',monospace">{{ targetLabel }}</div>
+          <div style="margin-top:6px;font:400 11px/1.7 'IBM Plex Mono',monospace;color:#8a959c">{{ targetMeta }}</div>
+        </sc-if>
+        <sc-if value="{{ noTarget }}" hint-placeholder-val="{{ false }}">
+          <div style="font:italic 400 12px 'IBM Plex Sans',sans-serif;color:#5c666d">{{ noTargetText }}</div>
+        </sc-if>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+          <div style="{{ trackDotStyle }}"></div>
+          <span style="font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a959c">{{ trackState }}</span>
+        </div>
+      </section>
+      <section>
+        <h2 style="margin:0 0 6px;font:600 10px 'IBM Plex Mono',monospace;color:#8a959c;letter-spacing:.14em">PTZ POSITION</h2>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #1a1f22;font:400 11.5px 'IBM Plex Mono',monospace"><span style="color:#8a959c">PAN</span><span>{{ pan }}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #1a1f22;font:400 11.5px 'IBM Plex Mono',monospace"><span style="color:#8a959c">TILT</span><span>{{ tilt }}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;font:400 11.5px 'IBM Plex Mono',monospace"><span style="color:#8a959c">ZOOM</span><span>{{ zoom }}</span></div>
+        <div style="margin-top:8px;background:#0b0d0e;border:1px solid #1a1f22;padding:8px 10px">
+          <sc-for list="{{ cmdLines }}" as="l" hint-placeholder-count="3">
+            <div style="font:400 10.5px/1.9 'IBM Plex Mono',monospace;color:#c9d2d7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="color:#5c666d">{{ l.t }}</span>  {{ l.c }}</div>
+          </sc-for>
+        </div>
+        <a href="#" style="display:inline-block;margin-top:10px;font:500 10.5px 'IBM Plex Mono',monospace;letter-spacing:.06em">↓ TRACKING LOG (JSONL)</a>
+      </section>
+      <section>
+        <h2 style="margin:0 0 10px;font:600 10px 'IBM Plex Mono',monospace;color:#8a959c;letter-spacing:.14em">DETECTION</h2>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+          <span style="font:400 11px 'IBM Plex Mono',monospace;color:#8a959c">CONFIDENCE ≥</span>
+          <span style="font:600 12px 'IBM Plex Mono',monospace;color:#3fd68f">{{ threshold }}%</span>
+        </div>
+        <input type="range" min="0" max="100" value="{{ threshold }}" onChange="{{ setThreshold }}">
+        <div style="margin:14px 0 6px;font:400 11px 'IBM Plex Mono',monospace;color:#8a959c">SCALE MODE</div>
+        <div style="display:flex;gap:6px">
+          <sc-for list="{{ scaleModes }}" as="m" hint-placeholder-count="3">
+            <button style="{{ m.style }}" onClick="{{ m.onClick }}">{{ m.name }}</button>
+          </sc-for>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0 0;font:400 11px 'IBM Plex Mono',monospace"><span style="color:#8a959c">MIN OBJECT SIZE</span><span>0.9% frame</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+          <span style="font:400 11px 'IBM Plex Mono',monospace;color:#8a959c">AREA OF INTEREST</span>
+          <button style="background:none;border:1px solid #3a4147;color:#c9d2d7;font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;padding:6px 10px">EDIT POLYGON</button>
+        </div>
+      </section>
+      <div style="flex:1"></div>
+      <section>
+        <button style="width:100%;background:#e8b13f;border:none;color:#0b0d0e;font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:11px 0">SAVE CHANGES</button>
+        <div style="margin-top:8px;font:400 10px/1.5 'IBM Plex Mono',monospace;color:#5c666d">Some changes restart the app (~10 s).</div>
+      </section>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;modelFault&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Simulate&quot;}}">
+class Component extends DCLogic {
+  state = { t: 0, threshold: 40, scale: "balanced" };
+  componentDidMount() { this.timer = setInterval(() => this.setState(s => ({ t: s.t + 1 })), 900); }
+  componentWillUnmount() { clearInterval(this.timer); }
+  renderVals() {
+    const t = this.state.t, thr = this.state.threshold;
+    const fault = this.props.modelFault ?? false;
+    const w = (a, p, ph) => a * Math.sin(t / p + ph);
+    const raw = [
+      { label: "excavator", c: Math.min(98, Math.round(94 + w(2, 3, 0))), x: 40 + w(4, 9, 0), y: 30 + w(1.5, 11, 2), bw: 26, bh: 31 },
+      { label: "dump truck", c: Math.round(86 + w(2, 4, 1)), x: 66 + w(1.5, 13, 1), y: 54, bw: 18, bh: 16 },
+      { label: "person", c: Math.round(71 + w(4, 3, 2)), x: 16 + ((t * 1.1) % 18), y: 60, bw: 4.5, bh: 15 }
+    ];
+    const dets = fault ? [] : raw.filter(d => d.c >= thr);
+    const target = dets.find(d => d.label === "excavator") || null;
+    const boxes = dets.map(d => {
+      const isT = target && d.label === target.label;
+      return {
+        key: d.label, tag: (isT ? "▸ " : "") + d.label + " " + d.c + "%",
+        boxStyle: { position: "absolute", left: d.x + "%", top: d.y + "%", width: d.bw + "%", height: d.bh + "%", border: isT ? "2px solid #3fd68f" : "1.5px solid rgba(63,214,143,.5)", boxShadow: "0 0 0 1px rgba(0,0,0,.45)", pointerEvents: "none" },
+        tagStyle: { position: "absolute", top: "-20px", left: "-2px", whiteSpace: "nowrap", font: "500 10px 'IBM Plex Mono',monospace", letterSpacing: ".04em", padding: "2px 6px", background: isT ? "#3fd68f" : "rgba(11,13,14,.85)", color: isT ? "#0b0d0e" : "#3fd68f", border: isT ? "1px solid #3fd68f" : "1px solid rgba(63,214,143,.35)" }
+      };
+    });
+    const clock = s => { const x = 43469 + s, p = n => String(n).padStart(2, "0"); return p(Math.floor(x / 3600)) + ":" + p(Math.floor(x % 3600 / 60)) + ":" + p(x % 60); };
+    const cyc = ["center 402,381", "— deadband", "center 396,377", "areazoom 0.86", "— deadband", "center 401,380"];
+    const cmdLines = [2, 1, 0].map(i => ({ key: i, t: clock(t - i), c: fault ? "— steering idle" : cyc[(t - i + 600) % 6] }));
+    const spark = Array.from({ length: 60 }, (_, i) => { const k = t - (59 - i); return fault ? 0 : Math.max(0, Math.round(2 + 1.4 * Math.sin(k / 5)) + ((k % 17) === 0 ? 1 : 0)); });
+    const sparkPoints = spark.map((v, i) => (i * (240 / 59)).toFixed(1) + "," + (38 - v * 8)).join(" ");
+    const mkDot = (col, pulse) => ({ width: "8px", height: "8px", background: col, animation: pulse ? "hxPulse 1.4s infinite" : "none", flex: "none" });
+    const chipDefs = [
+      { label: "excavator", on: !fault }, { label: "dump truck", on: !fault },
+      { label: "truck", on: false }, { label: "person · events off", on: false }
+    ];
+    const chips = chipDefs.map(c => ({
+      key: c.label, label: c.label,
+      dotStyle: { width: "7px", height: "7px", background: c.on ? "#3fd68f" : "#3a4147", flex: "none" },
+      chipStyle: { display: "inline-flex", alignItems: "center", gap: "7px", padding: "5px 10px", border: "1px solid #23282c", background: c.on ? "rgba(63,214,143,.07)" : "transparent", font: "500 11px 'IBM Plex Mono',monospace", color: c.on ? "#e8ecee" : "#8a959c" }
+    }));
+    const sizePct = target ? Math.max(target.bw, target.bh) : 0;
+    return {
+      modelFault: fault,
+      modelDotStyle: mkDot(fault ? "#e85d4d" : "#3fd68f", fault),
+      overlayDotStyle: mkDot(fault ? "#3a4147" : "#3fd68f", false),
+      ptzDotStyle: mkDot(fault ? "#3a4147" : "#3fd68f", !fault && !!target),
+      ms: fault ? "—" : (37 + Math.round(w(3, 4, 1))) + " ms",
+      boxes, sparkPoints, chips, cmdLines,
+      hasTarget: !!target, noTarget: !target,
+      noTargetText: fault ? "detection stopped" : "no machinery in view",
+      targetLabel: target ? target.label : "",
+      targetMeta: target ? target.c + "% confidence\nmax-dim " + sizePct + "% < margin 33%\nnot clipped" : "",
+      trackDotStyle: mkDot(fault ? "#3a4147" : target ? "#3fd68f" : "#8a959c", !fault && !!target),
+      trackState: fault ? "STEERING IDLE" : target ? "STEERING · STEP MODE · 1 HZ" : "HOLDING POSITION",
+      pan: (-12.4 + w(.6, 7, 0)).toFixed(1) + "°", tilt: (-8.2 + w(.3, 9, 1)).toFixed(1) + "°", zoom: (3.4 + w(.05, 11, 0)).toFixed(2) + "×",
+      threshold: thr, setThreshold: e => this.setState({ threshold: +e.target.value }),
+      scaleModes: ["center-crop", "balanced", "letterbox"].map(m => ({
+        key: m, name: m, onClick: () => this.setState({ scale: m }),
+        style: { padding: "6px 9px", border: "1px solid #23282c", background: this.state.scale === m ? "#1b2023" : "transparent", color: this.state.scale === m ? "#e8b13f" : "#8a959c", font: "500 10px 'IBM Plex Mono',monospace", letterSpacing: ".04em" }
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

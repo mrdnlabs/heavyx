@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#070707;color:#f2f0ea;font-family:'Archivo',system-ui,sans-serif}
+a{color:#ffc400;text-decoration:none}a:hover{color:#ffd75e;text-decoration:underline}
+@keyframes hxPulse{0%,100%{opacity:1}50%{opacity:.3}}
+input[type="range"]{accent-color:#ffc400;width:100%;margin:0}
+button{cursor:pointer;font-family:inherit}
+</style>
+</helmet>
+<div data-screen-label="Live HUD" style="position:relative;height:100vh;min-height:340px;overflow:hidden;background:#070707" onPointerMove="{{ onStageMove }}" onPointerUp="{{ endDrag }}" onPointerCancel="{{ endDrag }}">
+  <div ref="{{ stageRef }}" style="position:absolute;inset:0"><image-slot id="hx-live" shape="rect" placeholder="FULL-BLEED SITE VIEW — drop a still from the camera. Live app embeds media-stream-player (H.264)."></image-slot></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,7,7,.55),transparent 130px),linear-gradient(0deg,rgba(7,7,7,.6),transparent 170px);pointer-events:none"></div>
+  <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block">
+    <polygon points="{{ aoiSvgPoints }}" style="{{ aoiPolyStyle }}"></polygon>
+    <polygon points="68,62 92,62 92,88 68,88" style="{{ exclPolyStyle }}"></polygon>
+  </svg>
+  <div style="{{ exclTagStyle }}">EXCLUDED</div>
+  <div style="{{ guideStyle }}">
+    <div style="position:absolute;top:-24px;left:-2px;background:#ffc400;color:#0a0a0a;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.08em;padding:3px 8px;white-space:nowrap;pointer-events:none">FOLLOW ZONE {{ marginPct }}%</div>
+    <div style="position:absolute;top:-10px;left:-10px;width:24px;height:24px;cursor:nwse-resize;pointer-events:auto;touch-action:none" onPointerDown="{{ startMarginDrag }}"><div style="position:absolute;top:9px;left:9px;width:14px;height:14px;border-top:2.5px solid #ffc400;border-left:2.5px solid #ffc400"></div></div>
+    <div style="position:absolute;top:-10px;right:-10px;width:24px;height:24px;cursor:nesw-resize;pointer-events:auto;touch-action:none" onPointerDown="{{ startMarginDrag }}"><div style="position:absolute;top:9px;right:9px;width:14px;height:14px;border-top:2.5px solid #ffc400;border-right:2.5px solid #ffc400"></div></div>
+    <div style="position:absolute;bottom:-10px;left:-10px;width:24px;height:24px;cursor:nesw-resize;pointer-events:auto;touch-action:none" onPointerDown="{{ startMarginDrag }}"><div style="position:absolute;bottom:9px;left:9px;width:14px;height:14px;border-bottom:2.5px solid #ffc400;border-left:2.5px solid #ffc400"></div></div>
+    <div style="position:absolute;bottom:-10px;right:-10px;width:24px;height:24px;cursor:nwse-resize;pointer-events:auto;touch-action:none" onPointerDown="{{ startMarginDrag }}"><div style="position:absolute;bottom:9px;right:9px;width:14px;height:14px;border-bottom:2.5px solid #ffc400;border-right:2.5px solid #ffc400"></div></div>
+  </div>
+  <sc-for list="{{ boxes }}" as="b" hint-placeholder-count="2">
+    <div style="{{ b.boxStyle }}"><div style="{{ b.tagStyle }}">{{ b.tag }}</div></div>
+  </sc-for>
+  <sc-for list="{{ aoiHandles }}" as="h" hint-placeholder-count="0">
+    <div style="{{ h.style }}" onPointerDown="{{ h.onDown }}"><div style="position:absolute;inset:8px;background:#ffc400;border:2px solid #0a0a0a"></div></div>
+  </sc-for>
+  <sc-if value="{{ modelFault }}" hint-placeholder-val="{{ false }}">
+    <div style="{{ faultBarStyle }}">
+      <div style="width:8px;height:8px;background:#e85d4d;animation:hxPulse 1.2s infinite;flex:none"></div>
+      <div style="flex:1;min-width:200px;font:500 11.5px/1.5 'Archivo',sans-serif;color:#f5d9d4"><b style="font:700 11px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#f0a094">MODEL INITIALIZATION FAILED</b> — machinery_stage3_int8.tflite did not load on the DLPU. Detection, events and steering are stopped; the stream is unaffected. Likely cause: quantization params don't match the baked-in model.</div>
+      <div style="display:flex;gap:8px;flex:none">
+        <button style="background:none;border:1px solid #ffc400;color:#ffc400;font:700 9.5px 'JetBrains Mono',monospace;letter-spacing:.1em;padding:7px 11px">RESTART APP</button>
+        <button style="background:none;border:1px solid #4a453e;color:#c9c4b8;font:700 9.5px 'JetBrains Mono',monospace;letter-spacing:.1em;padding:7px 11px">VIEW LOG</button>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ aoiEdit }}" hint-placeholder-val="{{ false }}">
+    <div style="{{ aoiBarStyle }}">
+      <span style="font:700 10.5px 'JetBrains Mono',monospace;letter-spacing:.12em;color:#ffc400">EDITING AREA OF INTEREST</span>
+      <span style="font:400 11px 'Archivo',sans-serif;color:#c9c4b8">drag the vertices — detections outside the zone are ignored</span>
+      <button style="background:#ffc400;border:none;color:#0a0a0a;font:700 10px 'JetBrains Mono',monospace;letter-spacing:.1em;padding:8px 14px" onClick="{{ aoiDone }}">DONE</button>
+      <button style="background:none;border:1px solid #4a453e;color:#c9c4b8;font:700 10px 'JetBrains Mono',monospace;letter-spacing:.1em;padding:8px 14px" onClick="{{ aoiCancel }}">CANCEL</button>
+    </div>
+  </sc-if>
+  <div style="position:absolute;top:18px;left:18px;z-index:10">
+    <div style="height:5px;background:repeating-linear-gradient(45deg,#ffc400 0 9px,#0a0a0a 9px 18px)"></div>
+    <div style="background:rgba(7,7,7,.85);border:1px solid #2a2822;border-top:none;padding:9px 13px">
+      <div style="font:800 17px 'Archivo',sans-serif;letter-spacing:.12em">HEAVYX</div>
+      <sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:2px;font:500 9.5px 'JetBrains Mono',monospace;letter-spacing:.14em;color:#9a958a">{{ deviceLine }}</div>
+      </sc-if>
+    </div>
+  </div>
+  <div style="{{ lightsPlateStyle }}">
+    <div style="display:flex;align-items:center;gap:7px"><div style="{{ modelDotStyle }}"></div><span style="font:500 10px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#c9c4b8">MODEL</span></div>
+    <div style="display:flex;align-items:center;gap:7px"><div style="{{ overlayDotStyle }}"></div><span style="font:500 10px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#c9c4b8">OVERLAY</span></div>
+    <div style="display:flex;align-items:center;gap:7px"><div style="{{ ptzDotStyle }}"></div><span style="font:500 10px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#c9c4b8">PTZ</span></div>
+    <span style="font:500 10.5px 'JetBrains Mono',monospace;color:#f2f0ea">{{ ms }}</span>
+  </div>
+  <div style="{{ targetPlateStyle }}">
+    <div style="{{ eyebrowStyle }}">{{ plateEyebrow }}</div>
+    <div style="{{ plateTitleStyle }}">{{ plateTitle }}</div>
+    <div style="margin-top:7px;font:500 10.5px/1.6 'JetBrains Mono',monospace;color:#9a958a">{{ plateMeta }}</div>
+    <div style="margin-top:9px;font:500 10px 'JetBrains Mono',monospace;color:#6e6a5f;letter-spacing:.04em">LAST CMD <span style="color:#c9c4b8">{{ lastCmd }}</span></div>
+  </div>
+  <div style="{{ ptzPlateStyle }}"><span style="color:#9a958a">PAN </span>{{ pan }}<span style="color:#3a3830"> │ </span><span style="color:#9a958a">TILT </span>{{ tilt }}<span style="color:#3a3830"> │ </span><span style="color:#9a958a">ZOOM </span>{{ zoom }}</div>
+  <button style="{{ reopenStyle }}" onClick="{{ openDrawer }}">◂ CONTROLS</button>
+  <div style="{{ drawerStyle }}">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font:700 13px 'Archivo',sans-serif;letter-spacing:.12em">CONTROLS</span>
+      <div style="flex:1"></div>
+      <button style="background:none;border:1px solid #2a2822;color:#9a958a;font:600 9.5px 'JetBrains Mono',monospace;letter-spacing:.1em;padding:6px 10px" onClick="{{ closeDrawer }}">CLOSE ▸</button>
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:16px">
+      <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="3">
+        <button style="{{ tb.style }}" onClick="{{ tb.onClick }}">{{ tb.name }}</button>
+      </sc-for>
+    </div>
+    <sc-if value="{{ tabTrack }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #221f1a">
+        <div>
+          <div style="font:600 12px 'Archivo',sans-serif;letter-spacing:.04em">Camera steering</div>
+          <div style="font:400 10px 'JetBrains Mono',monospace;color:#9a958a;margin-top:2px">step mode · 1 Hz · VAPIX center</div>
+        </div>
+        <button style="{{ toggleTrackStyle }}" onClick="{{ toggleSteering }}"><div style="{{ toggleKnobStyle }}"></div></button>
+      </div>
+      <sc-if value="{{ fixedCamera }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:9px;align-items:flex-start;margin:10px 0 0;background:rgba(224,120,64,.08);border:1px solid rgba(224,120,64,.45);padding:9px 11px">
+          <span style="font:700 9px 'JetBrains Mono',monospace;letter-spacing:.08em;background:#e07840;color:#0a0a0a;padding:2px 6px;flex:none">NON-PTZ</span>
+          <span style="font:400 10.5px/1.5 'Archivo',sans-serif;color:#f0d5c4">This camera has no pan-tilt-zoom head. Detection and events run normally; steering controls are disabled.</span>
+        </div>
+      </sc-if>
+      <div style="{{ steerSectionStyle }}">
+        <div style="padding:14px 0;border-bottom:1px solid #221f1a">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font:600 12px 'Archivo',sans-serif;letter-spacing:.04em">Follow margin</span>
+            <span style="font:600 16px 'JetBrains Mono',monospace;color:#ffc400">{{ marginPct }}%</span>
+          </div>
+          <input type="range" min="10" max="90" value="{{ marginPct }}" onChange="{{ setMargin }}" style="margin-top:10px">
+          <div style="font:400 10px/1.6 'JetBrains Mono',monospace;color:#9a958a;margin-top:6px">Object is kept inside the centre zone on both axes — drag the corners of the guide on the video, or use the slider. An edge-clipped box forces an immediate zoom-out.</div>
+        </div>
+        <div style="padding:14px 0;border-bottom:1px solid #221f1a">
+          <div style="font:600 11px 'Archivo',sans-serif;letter-spacing:.08em;color:#c9c4b8;margin-bottom:8px">FOLLOW PRIORITY</div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <sc-for list="{{ prioRows }}" as="r" hint-placeholder-count="6">
+              <div style="{{ r.rowStyle }}"><span style="font:500 10px 'JetBrains Mono',monospace;color:#6e6a5f;width:16px;flex:none">{{ r.idx }}</span><span style="{{ r.nameStyle }}">{{ r.name }}</span><span style="{{ r.badgeStyle }}">{{ r.badge }}</span><span style="color:#4a453e;cursor:grab">≡</span></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="padding:14px 0;border-bottom:1px solid #221f1a">
+          <button style="display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:none;padding:0;color:#c9c4b8" onClick="{{ toggleAdv }}">
+            <span style="font:600 11px 'Archivo',sans-serif;letter-spacing:.08em">ADVANCED TUNING</span>
+            <span style="color:#6e6a5f;font:500 11px 'JetBrains Mono',monospace">{{ advArrow }}</span>
+          </button>
+          <sc-if value="{{ advOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:10px">
+              <div style="display:flex;justify-content:space-between;padding:6px 0;font:500 10.5px 'JetBrains Mono',monospace;border-bottom:1px solid #1a1814"><span style="color:#9a958a">deadband (quiet zone)</span><span>0.07</span></div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0;font:500 10.5px 'JetBrains Mono',monospace;border-bottom:1px solid #1a1814"><span style="color:#9a958a">approach / step</span><span>0.33</span></div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0;font:500 10.5px 'JetBrains Mono',monospace;border-bottom:1px solid #1a1814"><span style="color:#9a958a">EMA smoothing α</span><span>0.35</span></div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0;font:500 10.5px 'JetBrains Mono',monospace;border-bottom:1px solid #1a1814"><span style="color:#9a958a">target stickiness</span><span>5.0 s</span></div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0;font:500 10.5px 'JetBrains Mono',monospace;border-bottom:1px solid #1a1814"><span style="color:#9a958a">loss → zoom-out after</span><span>6.0 s</span></div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0;font:500 10.5px 'JetBrains Mono',monospace"><span style="color:#9a958a">log cap</span><span>1024 KB</span></div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+      <div style="padding:14px 0">
+        <div style="font:600 11px 'Archivo',sans-serif;letter-spacing:.08em;color:#c9c4b8;margin-bottom:8px">STEERING LOG</div>
+        <div style="background:rgba(7,7,7,.7);border:1px solid #221f1a;padding:8px 10px">
+          <sc-for list="{{ cmdLines }}" as="l" hint-placeholder-count="5">
+            <div style="font:400 10px/1.9 'JetBrains Mono',monospace;color:#c9c4b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="color:#5c5750">{{ l.t }}</span>  {{ l.cmd }}</div>
+          </sc-for>
+        </div>
+        <div style="margin-top:9px"><a href="#" style="font:500 10.5px 'JetBrains Mono',monospace;letter-spacing:.06em">↓ TRACKING LOG (JSONL)</a> <span style="font:400 10px 'JetBrains Mono',monospace;color:#6e6a5f">· 1 line/s · cap 1024 KB</span></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ tabDetect }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:2px 0 12px;border-bottom:1px solid #221f1a">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font:600 12px 'Archivo',sans-serif;letter-spacing:.04em">Confidence threshold</span>
+          <span style="font:600 16px 'JetBrains Mono',monospace;color:#ffc400">{{ threshold }}%</span>
+        </div>
+        <input type="range" min="0" max="100" value="{{ threshold }}" onChange="{{ setThreshold }}" style="margin-top:10px">
+        <div style="font:400 10px 'JetBrains Mono',monospace;color:#9a958a;margin-top:5px">Below this, detections are hidden and never steered to.</div>
+      </div>
+      <div style="padding:13px 0;border-bottom:1px solid #221f1a">
+        <div style="font:600 11px 'Archivo',sans-serif;letter-spacing:.08em;color:#c9c4b8;margin-bottom:8px">DETECTIONS · LAST 60 S</div>
+        <svg viewBox="0 0 240 40" preserveAspectRatio="none" style="width:100%;height:40px;display:block">
+          <polyline points="{{ sparkPoints }}" style="fill:none;stroke:#ffc400;stroke-width:1.4"></polyline>
+        </svg>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #221f1a">
+        <div>
+          <div style="font:600 12px 'Archivo',sans-serif">Area of interest</div>
+          <div style="font:400 10px 'JetBrains Mono',monospace;color:#9a958a;margin-top:2px">1 zone · 1 exclusion</div>
+        </div>
+        <button style="background:none;border:1px solid #ffc400;color:#ffc400;font:700 9.5px 'JetBrains Mono',monospace;letter-spacing:.1em;padding:8px 11px" onClick="{{ aoiEnter }}">EDIT ON VIDEO</button>
+      </div>
+      <div style="padding:13px 0;border-bottom:1px solid #221f1a">
+        <div style="font:600 11px 'Archivo',sans-serif;letter-spacing:.08em;color:#c9c4b8;margin-bottom:8px">SCALE MODE</div>
+        <div style="display:flex;gap:4px">
+          <sc-for list="{{ scaleModes }}" as="m" hint-placeholder-count="3">
+            <button style="{{ m.style }}" onClick="{{ m.onClick }}">{{ m.name }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;font:500 11px 'JetBrains Mono',monospace;border-bottom:1px solid #221f1a"><span style="color:#9a958a">MIN OBJECT SIZE</span><span>0.9% frame</span></div>
+      <div style="padding:13px 0">
+        <div style="font:600 11px 'Archivo',sans-serif;letter-spacing:.08em;color:#c9c4b8;margin-bottom:8px">INFERENCE</div>
+        <div style="display:flex;gap:4px">
+          <sc-for list="{{ speedModes }}" as="m" hint-placeholder-count="2">
+            <button style="{{ m.style }}" onClick="{{ m.onClick }}">{{ m.name }}</button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ tabOutput }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #221f1a">
+        <div><div style="font:600 12px 'Archivo',sans-serif">MQTT broker</div><div style="font:400 10px 'JetBrains Mono',monospace;color:#9a958a;margin-top:2px">mqtt://10.0.4.2:1883 · TLS</div></div>
+        <span style="font:600 9px 'JetBrains Mono',monospace;background:rgba(90,208,126,.12);border:1px solid rgba(90,208,126,.4);color:#5ad07e;padding:3px 7px;letter-spacing:.08em">CONNECTED</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:11px 0;font:500 11px 'JetBrains Mono',monospace;border-bottom:1px solid #221f1a"><span style="color:#c9c4b8">per-frame detections</span><span style="color:#5ad07e">ON</span></div>
+      <div style="display:flex;justify-content:space-between;padding:11px 0;font:500 11px 'JetBrains Mono',monospace;border-bottom:1px solid #221f1a"><span style="color:#c9c4b8">label state events</span><span style="color:#5ad07e">ON</span></div>
+      <div style="display:flex;justify-content:space-between;padding:11px 0;font:500 11px 'JetBrains Mono',monospace;border-bottom:1px solid #221f1a"><span style="color:#c9c4b8">detection crops (JPEG)</span><span style="color:#6e6a5f">OFF</span></div>
+      <div style="display:flex;justify-content:space-between;padding:11px 0;font:500 11px 'JetBrains Mono',monospace;border-bottom:1px solid #221f1a"><span style="color:#c9c4b8">crops → HTTP POST</span><span style="color:#6e6a5f">OFF</span></div>
+      <div style="display:flex;justify-content:space-between;padding:11px 0;font:500 11px 'JetBrains Mono',monospace"><span style="color:#c9c4b8">crops → SD card</span><span style="color:#6e6a5f">OFF</span></div>
+      <div style="font:400 10px/1.6 'JetBrains Mono',monospace;color:#6e6a5f;margin-top:4px">Events feed VMS recording rules; crops feed off-camera pipelines.</div>
+    </sc-if>
+    <div style="margin-top:18px;padding-top:12px;border-top:1px dashed #2a2822;display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font:400 9.5px 'JetBrains Mono',monospace;color:#6e6a5f">MODEL stage3_int8 · 12 classes · 38 ms</span>
+      <a href="#" style="font:500 9.5px 'JetBrains Mono',monospace;letter-spacing:.06em">MANAGE →</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;targetLost&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Simulate&quot;}, &quot;modelFault&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Simulate&quot;}, &quot;fixedCamera&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Simulate&quot;}}">
+class Component extends DCLogic {
+  state = { t: 0, threshold: 40, marginPct: 33, steering: true, drawer: true, tab: "TRACK", advOpen: false, scale: "balanced", speed: "accuracy", aoiEdit: false, aoiShow: true, aoiPoints: [{x:8,y:22},{x:56,y:12},{x:93,y:38},{x:84,y:90},{x:10,y:88}], aoiBackup: null, dragging: null, narrow: false, winW: 1400, winH: 900 };
+  stageRef = React.createRef();
+  componentDidMount() {
+    this.timer = setInterval(() => this.setState(s => ({ t: s.t + 1 })), 900);
+    const narrow = window.innerWidth < 760;
+    this.setState({ narrow, winW: window.innerWidth, winH: window.innerHeight, drawer: !narrow });
+    this.onResize = () => this.setState({ narrow: window.innerWidth < 760, winW: window.innerWidth, winH: window.innerHeight });
+    window.addEventListener("resize", this.onResize);
+  }
+  componentWillUnmount() { clearInterval(this.timer); window.removeEventListener("resize", this.onResize); }
+  pct(e) {
+    const r = this.stageRef.current.getBoundingClientRect();
+    return { x: Math.min(100, Math.max(0, (e.clientX - r.left) / r.width * 100)), y: Math.min(100, Math.max(0, (e.clientY - r.top) / r.height * 100)) };
+  }
+  renderVals() {
+    const { t, threshold, marginPct: m, steering, drawer, tab, advOpen, aoiEdit, aoiPoints, dragging, narrow, winW, winH } = this.state;
+    const lost = this.props.targetLost ?? false, fault = this.props.modelFault ?? false, fixed = this.props.fixedCamera ?? false;
+    const wide = !narrow;
+    const w = (a, p, ph) => a * Math.sin(t / p + ph);
+    const clipPhase = t % 40, clipping = !lost && !fault && steering && !fixed && clipPhase >= 30 && clipPhase < 34;
+    const exW = clipping ? 26 + (clipPhase - 29) * 7 : 25;
+    const all = fault ? [] : lost ? [
+      { label: "person", c: Math.round(71 + w(4, 3, 2)), x: 14 + ((t * 1.1) % 16), y: 61, bw: 4, bh: 14 }
+    ] : [
+      { label: "excavator", c: Math.min(98, Math.round(94 + w(2, 3, 0))), x: clipping ? 97 - exW : 39 + w(4, 9, 0), y: 30 + w(1.5, 11, 2), bw: exW, bh: 30 },
+      { label: "dump truck", c: Math.round(86 + w(2, 4, 1)), x: 66 + w(1.5, 13, 1), y: 55, bw: 17, bh: 15 },
+      { label: "person", c: Math.round(71 + w(4, 3, 2)), x: 14 + ((t * 1.1) % 16), y: 61, bw: 4, bh: 14 }
+    ];
+    const dets = all.filter(d => d.c >= threshold);
+    const PRIO = ["excavator", "bulldozer", "wheel loader", "dump truck", "truck", "mobile crane", "tower crane", "pump truck", "concrete mixer", "pile driver", "roller", "person"];
+    const machines = dets.filter(d => d.label !== "person");
+    machines.sort((a, b) => PRIO.indexOf(a.label) - PRIO.indexOf(b.label));
+    const target = (fixed || !steering) ? (machines[0] || null) : (machines[0] || null);
+    const seen = new Set(dets.map(d => d.label));
+    const boxes = dets.map(d => {
+      const isT = target && d.label === target.label && steering && !fixed;
+      return {
+        key: d.label, tag: d.label + " " + d.c + "%" + (isT && clipping ? " · CLIPPED" : ""),
+        boxStyle: { position: "absolute", left: d.x + "%", top: d.y + "%", width: d.bw + "%", height: d.bh + "%", border: isT ? "2px solid #ffc400" : "1.5px solid rgba(242,240,234,.55)", pointerEvents: "none", zIndex: 5, opacity: aoiEdit ? .4 : 1 },
+        tagStyle: { position: "absolute", top: "-21px", left: "-2px", whiteSpace: "nowrap", font: "600 10px 'JetBrains Mono',monospace", letterSpacing: ".05em", padding: "2px 7px", background: isT ? (clipping ? "#e07840" : "#ffc400") : "rgba(7,7,7,.8)", color: isT ? "#0a0a0a" : "#f2f0ea" }
+      };
+    });
+    const clock = s => { const x = 43469 + s, p = n => String(n).padStart(2, "0"); return p(Math.floor(x / 3600)) + ":" + p(Math.floor(x % 3600 / 60)) + ":" + p(x % 60); };
+    const cyc = ["center 402,381", "— deadband", "center 396,377", "areazoom 0.86", "— deadband", "center 401,380"];
+    const cmdAt = k => {
+      if (fault) return "— detection stopped";
+      if (fixed) return "— no PTZ on this device";
+      if (!steering) return "— steering disabled";
+      if (lost) return "zoom-out (reacquire " + (Math.min(3, Math.floor((k % 9) / 3) + 1)) + "/3)";
+      const cp = k % 40;
+      if (cp >= 30 && cp < 34) return "zoom-out (object clipped)";
+      return cyc[k % 6];
+    };
+    const cmdLines = [4, 3, 2, 1, 0].map(i => ({ key: i, t: clock(t - i), cmd: cmdAt(t - i) }));
+    const spark = Array.from({ length: 60 }, (_, i) => { const k = t - (59 - i); return fault ? 0 : Math.max(0, Math.round(2 + 1.4 * Math.sin(k / 5)) + ((k % 17) === 0 ? 1 : 0)); });
+    const sparkPoints = spark.map((v, i) => (i * (240 / 59)).toFixed(1) + "," + (38 - v * 8)).join(" ");
+    const mkDot = (col, pulse) => ({ width: "8px", height: "8px", background: col, animation: pulse ? "hxPulse 1.4s infinite" : "none", flex: "none" });
+    const plate = { position: "absolute", background: "rgba(7,7,7,.85)", border: "1px solid #2a2822", zIndex: 10 };
+    const sizePct = target ? Math.max(target.bw, target.bh) : 0;
+    const tracking = !!target && steering && !fixed && !fault;
+    const eyebrow = fault ? "DETECTION STOPPED" : lost ? "TARGET LOST" : fixed ? "DETECT ONLY" : !steering ? "STEERING PAUSED" : target ? (clipping ? "CLIPPED — ZOOMING OUT" : "TRACKING") : "SEARCHING";
+    const eyeCol = fault ? "#f0a094" : lost || clipping ? "#e07840" : "#ffc400";
+    const prioRows = PRIO.map((name, i) => {
+      const isT = tracking && target.label === name, isP = name === "person";
+      return {
+        key: name, idx: String(i + 1).padStart(2, "0"), name,
+        rowStyle: { display: "flex", alignItems: "center", gap: "10px", padding: "6px 8px", background: isT ? "rgba(255,196,0,.07)" : "transparent", border: isT ? "1px solid rgba(255,196,0,.25)" : "1px solid transparent", borderTop: isP ? "1px dashed #2a2822" : (isT ? "1px solid rgba(255,196,0,.25)" : "1px solid transparent"), marginTop: isP ? "4px" : 0 },
+        nameStyle: { font: (isT ? "600" : "500") + " 12px 'Archivo',sans-serif", flex: 1, color: isP ? "#6e6a5f" : seen.has(name) ? "#f2f0ea" : "#9a958a" },
+        badge: isT ? "TRACKING" : isP ? "NEVER FOLLOWED" : seen.has(name) ? "IN FRAME" : "",
+        badgeStyle: isT ? { font: "600 9px 'JetBrains Mono',monospace", background: "#ffc400", color: "#0a0a0a", padding: "2px 6px", letterSpacing: ".08em" } : isP ? { font: "600 9px 'JetBrains Mono',monospace", border: "1px solid #3a3830", color: "#9a958a", padding: "2px 6px", letterSpacing: ".08em" } : seen.has(name) ? { font: "600 9px 'JetBrains Mono',monospace", color: "#9a958a", letterSpacing: ".08em" } : { display: "none" }
+      };
+    });
+    const drawerW = narrow ? "100%" : "340px", drawerPush = drawer && !narrow ? "358px" : "18px";
+    const stack = narrow || (drawer && winW < 1140);
+    const short = winH < 560;
+    const aoiHandles = aoiEdit ? aoiPoints.map((p, i) => ({
+      key: i,
+      style: { position: "absolute", left: "calc(" + p.x + "% - 14px)", top: "calc(" + p.y + "% - 14px)", width: "28px", height: "28px", cursor: "move", touchAction: "none", zIndex: 15 },
+      onDown: e => { e.preventDefault(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} this.setState({ dragging: { type: "aoi", i } }); }
+    })) : [];
+    return {
+      wide, deviceLine: fixed ? "DETECT · AXIS P3408-VE (FIXED)" : "PTZ FOLLOW · AXIS Q6355-LE",
+      stageRef: this.stageRef,
+      aoiSvgPoints: aoiPoints.map(p => p.x + "," + p.y).join(" "),
+      aoiPolyStyle: { fill: aoiEdit ? "rgba(255,196,0,.09)" : "rgba(255,196,0,.04)", stroke: aoiEdit ? "#ffc400" : "rgba(255,196,0,.45)", strokeWidth: aoiEdit ? .45 : .3, strokeDasharray: "1.6 1", display: this.state.aoiShow || aoiEdit ? "block" : "none" },
+      exclPolyStyle: { fill: "rgba(232,93,77,.07)", stroke: "rgba(232,93,77,.55)", strokeWidth: .3, strokeDasharray: "1 1", display: (this.state.aoiShow || aoiEdit) ? "block" : "none" },
+      exclTagStyle: { position: "absolute", left: "68.5%", top: "62.5%", font: "600 8.5px 'JetBrains Mono',monospace", letterSpacing: ".1em", color: "rgba(232,93,77,.8)", zIndex: 3, pointerEvents: "none", display: (this.state.aoiShow || aoiEdit) ? "block" : "none" },
+      aoiHandles, aoiEdit,
+      aoiEnter: () => this.setState({ aoiEdit: true, aoiBackup: aoiPoints.map(p => ({ ...p })), drawer: false }),
+      aoiDone: () => this.setState({ aoiEdit: false, drawer: !this.state.narrow }),
+      aoiCancel: () => this.setState(s => ({ aoiEdit: false, aoiPoints: s.aoiBackup || s.aoiPoints, drawer: !s.narrow })),
+      aoiBarStyle: { position: "absolute", top: fault ? "64px" : "18px", left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", justifyContent: "center", background: "rgba(7,7,7,.9)", border: "1px solid #ffc400", padding: "10px 14px", zIndex: 40, maxWidth: "92%" },
+      guideStyle: { position: "absolute", left: (50 - m / 2) + "%", top: (50 - m / 2) + "%", width: m + "%", height: m + "%", border: "1.5px dashed rgba(255,196,0," + (steering ? ".85" : ".3") + ")", boxShadow: dragging && dragging.type === "margin" ? "0 0 0 4000px rgba(7,7,7,.28)" : "0 0 0 4000px rgba(7,7,7,.14)", pointerEvents: "none", transition: dragging ? "none" : "all .2s", zIndex: 4, display: (fixed || aoiEdit || fault) ? "none" : "block" },
+      startMarginDrag: e => { e.preventDefault(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {} this.setState({ dragging: { type: "margin" } }); },
+      onStageMove: e => {
+        const d = this.state.dragging; if (!d || !this.stageRef.current) return;
+        const p = this.pct(e);
+        if (d.type === "margin") {
+          const mm = Math.round(Math.max(Math.abs(p.x - 50) * 2, Math.abs(p.y - 50) * 2));
+          this.setState({ marginPct: Math.min(90, Math.max(10, mm)) });
+        } else {
+          const pts = this.state.aoiPoints.map((q, j) => j === d.i ? { x: Math.round(Math.min(99, Math.max(1, p.x))), y: Math.round(Math.min(99, Math.max(1, p.y))) } : q);
+          this.setState({ aoiPoints: pts });
+        }
+      },
+      endDrag: () => this.state.dragging && this.setState({ dragging: null }),
+      boxes, modelFault: fault,
+      faultBarStyle: { position: "absolute", top: 0, left: 0, right: 0, display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", background: "rgba(28,10,8,.94)", borderBottom: "1px solid rgba(232,93,77,.5)", padding: "10px 16px", zIndex: 45 },
+      lightsPlateStyle: { ...plate, top: fault ? (narrow ? "84px" : "64px") : "18px", right: drawerPush, display: (drawer && narrow) ? "none" : "flex", alignItems: "center", gap: "14px", padding: "9px 13px", transition: "right .25s" },
+      modelDotStyle: mkDot(fault ? "#e85d4d" : "#5ad07e", fault),
+      overlayDotStyle: mkDot(fault ? "#3a3830" : "#5ad07e", false),
+      ptzDotStyle: mkDot(fixed || fault ? "#3a3830" : tracking ? "#ffc400" : "#5ad07e", tracking || (lost && !fixed)),
+      ms: fault ? "—" : (41 + Math.round(w(3, 4, 1))) + " MS",
+      plateEyebrow: eyebrow,
+      eyebrowStyle: { font: "600 10px 'JetBrains Mono',monospace", letterSpacing: ".18em", color: eyeCol, animation: (lost || clipping) ? "hxPulse 1.2s infinite" : "none" },
+      plateTitle: fault ? "no detections" : lost ? "reacquiring" : target ? target.label : "no machinery",
+      plateTitleStyle: { font: "800 " + (short ? "19px" : narrow ? "22px" : "30px") + "/1.05 'Archivo',sans-serif", textTransform: "uppercase", letterSpacing: ".01em", marginTop: short ? "3px" : "5px" },
+      plateMeta: fault ? "MODEL OFFLINE — SEE BANNER" : lost ? "LAST excavator 47 S AGO · person IN FRAME — NEVER FOLLOWED" : target ? target.c + "% CONF · MAX-DIM " + sizePct + "% " + (sizePct > m ? "> MARGIN " + m + "% — ZOOMING OUT" : "< MARGIN " + m + "%") + (clipping ? " · EDGE-CLIPPED" : " · CENTERED") : "WAITING FOR DETECTIONS ≥ " + threshold + "%",
+      lastCmd: cmdAt(t),
+      targetPlateStyle: { ...plate, left: "18px", bottom: stack ? "64px" : "18px", right: narrow ? "18px" : "auto", maxWidth: narrow ? "none" : "460px", padding: short ? "9px 12px" : "13px 16px", display: (drawer && narrow) || aoiEdit ? "none" : "block" },
+      pan: fixed ? "—" : (-12.4 + w(.6, 7, 0)).toFixed(1) + "°", tilt: fixed ? "—" : (-8.2 + w(.3, 9, 1)).toFixed(1) + "°", zoom: fixed ? "—" : (3.4 + w(.05, 11, 0) - (clipping ? (clipPhase - 29) * .12 : 0)).toFixed(2) + "×",
+      ptzPlateStyle: { ...plate, right: narrow ? "18px" : stack ? "auto" : drawerPush, left: stack ? "18px" : "auto", bottom: "18px", padding: "9px 13px", font: "500 11px 'JetBrains Mono',monospace", whiteSpace: "nowrap", textAlign: narrow ? "center" : "left", transition: "right .25s", display: (drawer && narrow) || aoiEdit ? "none" : "block" },
+      reopenStyle: { position: "absolute", top: fault ? (narrow ? "84px" : "64px") : "18px", right: "18px", display: drawer || aoiEdit ? "none" : "block", background: "#ffc400", border: "none", color: "#0a0a0a", font: "700 10px 'JetBrains Mono',monospace", letterSpacing: ".1em", padding: "9px 12px", zIndex: 25 },
+      openDrawer: () => this.setState({ drawer: true }), closeDrawer: () => this.setState({ drawer: false }),
+      drawerStyle: { position: "absolute", top: 0, right: 0, bottom: 0, width: drawerW, boxSizing: "border-box", background: narrow ? "rgba(10,10,9,.97)" : "rgba(10,10,9,.92)", backdropFilter: "blur(9px)", borderLeft: narrow ? "none" : "1px solid #2a2822", padding: "16px 18px", overflowY: "auto", transform: drawer ? "translateX(0)" : "translateX(100%)", transition: "transform .25s", zIndex: 30 },
+      tabTrack: tab === "TRACK", tabDetect: tab === "DETECT", tabOutput: tab === "OUTPUT",
+      tabs: ["DETECT", "TRACK", "OUTPUT"].map(n => ({
+        key: n, name: n, onClick: () => this.setState({ tab: n }),
+        style: { flex: 1, padding: "9px 0", border: "1px solid " + (tab === n ? "#ffc400" : "#2a2822"), background: tab === n ? "#ffc400" : "transparent", color: tab === n ? "#0a0a0a" : "#9a958a", font: "700 10px 'JetBrains Mono',monospace", letterSpacing: ".12em" }
+      })),
+      fixedCamera: fixed,
+      steerSectionStyle: { opacity: fixed ? .45 : 1, pointerEvents: fixed ? "none" : "auto" },
+      toggleSteering: () => !fixed && this.setState(s => ({ steering: !s.steering })),
+      toggleTrackStyle: { width: "48px", height: "26px", border: "none", background: fixed ? "#26231e" : steering ? "#ffc400" : "#3a3830", position: "relative", padding: 0, transition: "background .2s", cursor: fixed ? "not-allowed" : "pointer", flex: "none" },
+      toggleKnobStyle: { position: "absolute", top: "3px", left: (steering && !fixed) ? "25px" : "3px", width: "20px", height: "20px", background: "#0a0a0a", transition: "left .2s" },
+      marginPct: m, setMargin: e => this.setState({ marginPct: +e.target.value }),
+      prioRows, advOpen, advArrow: advOpen ? "▾" : "▸", toggleAdv: () => this.setState(s => ({ advOpen: !s.advOpen })),
+      cmdLines, sparkPoints,
+      threshold, setThreshold: e => this.setState({ threshold: +e.target.value }),
+      scaleModes: ["center-crop", "balanced", "letterbox"].map(n => ({
+        key: n, name: n, onClick: () => this.setState({ scale: n }),
+        style: { flex: 1, padding: "7px 0", border: "1px solid " + (this.state.scale === n ? "#ffc400" : "#2a2822"), background: this.state.scale === n ? "rgba(255,196,0,.1)" : "transparent", color: this.state.scale === n ? "#ffc400" : "#9a958a", font: "500 9.5px 'JetBrains Mono',monospace", letterSpacing: ".02em" }
+      })),
+      speedModes: ["prioritize speed", "prioritize accuracy"].map(n => {
+        const k = n.split(" ")[1], on = this.state.speed === k;
+        return {
+          key: k, name: k.toUpperCase(), onClick: () => this.setState({ speed: k }),
+          style: { flex: 1, padding: "8px 0", border: "1px solid " + (on ? "#ffc400" : "#2a2822"), background: on ? "rgba(255,196,0,.1)" : "transparent", color: on ? "#ffc400" : "#9a958a", font: "600 9.5px 'JetBrains Mono',monospace", letterSpacing: ".08em" }
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

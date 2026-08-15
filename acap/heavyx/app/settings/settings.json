@@ -1,0 +1,76 @@
+{
+ "coordinateVersion": 2,
+ "confidence": 50,
+ "scaleMode": "balanced",
+ "objectness": 0.25,
+ "nms": 0.05,
+ "aoi": {
+  "x1": 0,
+  "y1": 0,
+  "x2": 640,
+  "y2": 640
+ },
+ "aoi_polygon": [],
+ "exclude_polygons": [],
+ "size": {
+  "x1": 0,
+  "y1": 0,
+  "x2": 13,
+  "y2": 13
+ },
+ "ignore": [],
+ "modelDescription": "",
+ "stabelizeTransition": 600,
+ "minEventDuration": 3000,
+ "prioritize": "accuracy",
+ "sd_capture": {
+  "enabled": false,
+  "interval": 2
+ },
+ "cropping": {
+  "active": false,
+  "throttle": 500,
+  "sdcard": false,
+  "mqtt": false,
+  "http": false,
+  "http_url": "",
+  "http_auth": "none",
+  "http_username": "",
+  "http_password": "",
+  "http_token": "",
+  "leftborder": 0,
+  "rightborder": 0,
+  "topborder": 0,
+  "bottomborder": 0
+ },
+ "ptz": {
+  "enabled": false,
+  "marginPercent": 33,
+  "minConfidence": 40,
+  "priority": [
+   "excavator",
+   "bulldozer",
+   "wheel loader",
+   "dump truck",
+   "truck",
+   "mobile crane",
+   "tower crane",
+   "pump truck",
+   "concrete mixer",
+   "pile driver",
+   "roller",
+   "person"
+  ],
+  "deadband": 0.07,
+  "approach": 0.33,
+  "emaAlpha": 0.35,
+  "stickySeconds": 5,
+  "lossZoomoutSeconds": 6,
+  "logMaxKB": 1024
+ },
+ "overlay": {
+  "enabled": true,
+  "labels": true,
+  "stats": true
+ }
+}

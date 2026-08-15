@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HeavyX</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="js/media-stream-player.min.js"></script>
+<style>
+:root{--bg:#070707;--panel:rgba(7,7,7,.85);--line:#2a2822;--line2:#221f1a;
+--ink:#f2f0ea;--muted:#9a958a;--dim:#6e6a5f;--accent:#ffc400;--ok:#5ad07e;
+--warn:#e07840;--fail:#e85d4d}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font-family:'Archivo',system-ui,sans-serif;overflow:hidden}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+button{cursor:pointer;font-family:inherit}
+input[type=range]{accent-color:var(--accent);width:100%;margin:0}
+.mono{font-family:'JetBrains Mono',monospace}
+@keyframes hxPulse{0%,100%{opacity:1}50%{opacity:.3}}
+#stage{position:absolute;inset:0;background:#070707}
+#stage media-stream-player{position:absolute;inset:0;width:100%;height:100%}
+.vignette{position:absolute;inset:0;pointer-events:none;
+background:linear-gradient(180deg,rgba(7,7,7,.55),transparent 130px),
+linear-gradient(0deg,rgba(7,7,7,.6),transparent 170px)}
+.plate{position:absolute;background:var(--panel);border:1px solid var(--line);z-index:10}
+.det-box{position:absolute;border:1.5px solid rgba(242,240,234,.55);
+pointer-events:none;z-index:5}
+.det-box.target{border:2px solid var(--accent)}
+.det-tag{position:absolute;top:-21px;left:-2px;white-space:nowrap;
+font:600 10px 'JetBrains Mono',monospace;letter-spacing:.05em;padding:2px 7px;
+background:rgba(7,7,7,.8);color:var(--ink)}
+.det-box.target .det-tag{background:var(--accent);color:#0a0a0a}
+.det-box.target.clipped .det-tag{background:var(--warn)}
+#guide{position:absolute;border:1.5px dashed rgba(255,196,0,.85);
+box-shadow:0 0 0 4000px rgba(7,7,7,.14);pointer-events:none;z-index:4;transition:all .2s}
+#guide.dragging{transition:none;box-shadow:0 0 0 4000px rgba(7,7,7,.28)}
+#guide .lbl{position:absolute;top:-24px;left:-2px;background:var(--accent);
+color:#0a0a0a;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.08em;
+padding:3px 8px;white-space:nowrap}
+.gcorner{position:absolute;width:24px;height:24px;pointer-events:auto;touch-action:none}
+.gcorner div{position:absolute;width:14px;height:14px}
+.aoi-handle{position:absolute;width:28px;height:28px;cursor:move;touch-action:none;z-index:15}
+.aoi-handle div{position:absolute;inset:8px;background:var(--accent);border:2px solid #0a0a0a}
+.drawer{position:absolute;top:0;right:0;bottom:0;width:340px;
+background:rgba(10,10,9,.92);backdrop-filter:blur(9px);
+border-left:1px solid var(--line);padding:16px 18px;overflow-y:auto;
+transform:translateX(0);transition:transform .25s;z-index:30}
+.drawer.closed{transform:translateX(100%)}
+.tabbtn{flex:1;padding:9px 0;border:1px solid var(--line);background:transparent;
+color:var(--muted);font:700 10px 'JetBrains Mono',monospace;letter-spacing:.12em}
+.tabbtn.on{border-color:var(--accent);background:var(--accent);color:#0a0a0a}
+.row{display:flex;justify-content:space-between;align-items:center;
+padding:11px 0;border-bottom:1px solid var(--line2)}
+.kv{display:flex;justify-content:space-between;padding:6px 0;
+font:500 10.5px 'JetBrains Mono',monospace;border-bottom:1px solid #1a1814}
+.kv span:first-child{color:var(--muted)}
+.h2{font:600 11px 'Archivo',sans-serif;letter-spacing:.08em;color:#c9c4b8;margin:0 0 8px}
+.prow{display:flex;align-items:center;gap:8px;padding:6px 8px;
+border:1px solid transparent;user-select:none}
+.prow.tracking{background:rgba(255,196,0,.07);border-color:rgba(255,196,0,.25)}
+.prow.person-sep{border-top:1px dashed var(--line);margin-top:4px}
+.prow .nm{font:500 12px 'Archivo',sans-serif;flex:1;color:var(--muted)}
+.prow .nm.seen{color:var(--ink)}
+.prow .nm.off{color:var(--dim);text-decoration:line-through}
+.prow .bdg{font:600 9px 'JetBrains Mono',monospace;letter-spacing:.08em;color:var(--muted)}
+.prow .bdg.trk{background:var(--accent);color:#0a0a0a;padding:2px 6px}
+.mvbtn{background:none;border:1px solid var(--line);color:var(--muted);
+font:600 10px 'JetBrains Mono',monospace;width:22px;height:20px;padding:0;line-height:1}
+.mvbtn:hover{border-color:var(--accent);color:var(--accent)}
+.smallbtn{background:none;border:1px solid var(--accent);color:var(--accent);
+font:700 9.5px 'JetBrains Mono',monospace;letter-spacing:.1em;padding:8px 11px}
+.ghostbtn{background:none;border:1px solid #4a453e;color:#c9c4b8;
+font:700 9.5px 'JetBrains Mono',monospace;letter-spacing:.1em;padding:8px 11px}
+.toggle{width:48px;height:26px;border:none;background:#3a3830;position:relative;
+padding:0;transition:background .2s;flex:none}
+.toggle.on{background:var(--accent)}
+.toggle .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;
+background:#0a0a0a;transition:left .2s}
+.toggle.on .knob{left:25px}
+.dot{width:8px;height:8px;flex:none}
+#topbar{position:absolute;top:18px;left:18px;z-index:10}
+#topbar .stripe{height:5px;background:repeating-linear-gradient(45deg,var(--accent) 0 9px,#0a0a0a 9px 18px)}
+#topbar .body{background:var(--panel);border:1px solid var(--line);border-top:none;padding:9px 13px}
+@media(max-width:760px){.drawer{width:100%}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage"></div>
+  <div class="vignette"></div>
+  <svg id="zonesvg" viewBox="0 0 100 100" preserveAspectRatio="none"
+       style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block">
+    <polygon id="aoiPoly" points="" style="fill:rgba(255,196,0,.04);stroke:rgba(255,196,0,.45);stroke-width:.3;stroke-dasharray:1.6 1"></polygon>
+    <g id="exclPolys"></g>
+  </svg>
+  <div id="guide" style="display:none">
+    <div class="lbl">FOLLOW ZONE <span id="gpct">33</span>%</div>
+    <div class="gcorner" data-c="tl" style="top:-10px;left:-10px;cursor:nwse-resize"><div style="top:9px;left:9px;border-top:2.5px solid var(--accent);border-left:2.5px solid var(--accent)"></div></div>
+    <div class="gcorner" data-c="tr" style="top:-10px;right:-10px;cursor:nesw-resize"><div style="top:9px;right:9px;border-top:2.5px solid var(--accent);border-right:2.5px solid var(--accent)"></div></div>
+    <div class="gcorner" data-c="bl" style="bottom:-10px;left:-10px;cursor:nesw-resize"><div style="bottom:9px;left:9px;border-bottom:2.5px solid var(--accent);border-left:2.5px solid var(--accent)"></div></div>
+    <div class="gcorner" data-c="br" style="bottom:-10px;right:-10px;cursor:nwse-resize"><div style="bottom:9px;right:9px;border-bottom:2.5px solid var(--accent);border-right:2.5px solid var(--accent)"></div></div>
+  </div>
+  <div id="boxes"></div>
+  <div id="aoiHandles"></div>
+
+  <div id="faultbar" style="display:none;position:absolute;top:0;left:0;right:0;z-index:45;
+       background:rgba(28,10,8,.94);border-bottom:1px solid rgba(232,93,77,.5);
+       padding:10px 16px;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="width:8px;height:8px;background:var(--fail);animation:hxPulse 1.2s infinite;flex:none"></div>
+    <div style="flex:1;min-width:200px;font:500 11.5px/1.5 'Archivo',sans-serif;color:#f5d9d4">
+      <b class="mono" style="font-size:11px;letter-spacing:.1em;color:#f0a094">MODEL INITIALIZATION FAILED</b>
+      — <span id="faultmsg">the model did not load on the DLPU.</span> Detection, events and steering are stopped; the stream is unaffected.
+    </div>
+    <div style="display:flex;gap:8px;flex:none">
+      <button class="smallbtn" onclick="restartApp()">RESTART APP</button>
+      <a class="ghostbtn" href="about.html" style="display:inline-block">VIEW LOG</a>
+    </div>
+  </div>
+
+  <div id="aoibar" style="display:none;position:absolute;top:18px;left:50%;transform:translateX(-50%);
+       z-index:40;background:rgba(7,7,7,.9);border:1px solid var(--accent);padding:10px 14px;
+       align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;max-width:92%">
+    <span class="mono" style="font:700 10.5px 'JetBrains Mono',monospace;letter-spacing:.12em;color:var(--accent)">EDITING AREA OF INTEREST</span>
+    <span style="font:400 11px 'Archivo',sans-serif;color:#c9c4b8">drag the vertices — detections outside the zone are ignored</span>
+    <button style="background:var(--accent);border:none;color:#0a0a0a;font:700 10px 'JetBrains Mono',monospace;letter-spacing:.1em;padding:8px 14px" onclick="aoiDone()">DONE</button>
+    <button class="ghostbtn" onclick="aoiCancel()">CANCEL</button>
+  </div>
+
+  <div id="topbar">
+    <div class="stripe"></div>
+    <div class="body">
+      <div style="font:800 17px 'Archivo',sans-serif;letter-spacing:.12em">HEAVYX</div>
+      <div id="devline" class="mono" style="margin-top:2px;font-size:9.5px;letter-spacing:.14em;color:var(--muted)">…</div>
+    </div>
+  </div>
+
+  <div id="lights" class="plate" style="top:18px;right:376px;display:flex;align-items:center;gap:14px;padding:9px 13px;transition:right .25s">
+    <div style="display:flex;align-items:center;gap:7px"><div class="dot" id="dotModel" style="background:#3a3830"></div><span class="mono" style="font-size:10px;letter-spacing:.1em;color:#c9c4b8">MODEL</span></div>
+    <div style="display:flex;align-items:center;gap:7px"><div class="dot" id="dotOverlay" style="background:#3a3830"></div><span class="mono" style="font-size:10px;letter-spacing:.1em;color:#c9c4b8">OVERLAY</span></div>
+    <div style="display:flex;align-items:center;gap:7px"><div class="dot" id="dotPtz" style="background:#3a3830"></div><span class="mono" style="font-size:10px;letter-spacing:.1em;color:#c9c4b8">PTZ</span></div>
+    <span class="mono" id="msLbl" style="font-size:10.5px;color:var(--ink)">— MS</span>
+  </div>
+
+  <div id="targetPlate" class="plate" style="left:18px;bottom:18px;max-width:460px;padding:13px 16px">
+    <div id="eyebrow" class="mono" style="font-size:10px;letter-spacing:.18em;color:var(--accent)">STARTING</div>
+    <div id="plateTitle" style="font:800 30px/1.05 'Archivo',sans-serif;text-transform:uppercase;letter-spacing:.01em;margin-top:5px">heavyx</div>
+    <div id="plateMeta" class="mono" style="margin-top:7px;font-size:10.5px;line-height:1.6;color:var(--muted)">connecting…</div>
+    <div class="mono" style="margin-top:9px;font-size:10px;color:var(--dim);letter-spacing:.04em">LAST CMD <span id="lastCmd" style="color:#c9c4b8">none</span></div>
+  </div>
+
+  <div id="ptzPlate" class="plate mono" style="right:376px;bottom:18px;padding:9px 13px;font-size:11px;white-space:nowrap;transition:right .25s">
+    <span style="color:var(--muted)">PAN </span><span id="pv">—</span><span style="color:#3a3830"> │ </span><span style="color:var(--muted)">TILT </span><span id="tv">—</span><span style="color:#3a3830"> │ </span><span style="color:var(--muted)">ZOOM </span><span id="zv">—</span>
+  </div>
+
+  <button id="reopen" style="display:none;position:absolute;top:18px;right:18px;z-index:25;background:var(--accent);border:none;color:#0a0a0a;font:700 10px 'JetBrains Mono',monospace;letter-spacing:.1em;padding:9px 12px" onclick="setDrawer(true)">◂ CONTROLS</button>
+
+  <div id="drawer" class="drawer">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font:700 13px 'Archivo',sans-serif;letter-spacing:.12em">CONTROLS</span>
+      <div style="flex:1"></div>
+      <button class="ghostbtn" style="border-color:var(--line);color:var(--muted);padding:6px 10px" onclick="setDrawer(false)">CLOSE ▸</button>
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:16px">
+      <button class="tabbtn" data-tab="DETECT" onclick="setTab('DETECT')">DETECT</button>
+      <button class="tabbtn on" data-tab="TRACK" onclick="setTab('TRACK')">TRACK</button>
+      <button class="tabbtn" data-tab="OUTPUT" onclick="setTab('OUTPUT')">OUTPUT</button>
+    </div>
+
+    <div id="tab-TRACK">
+      <div class="row">
+        <div>
+          <div style="font:600 12px 'Archivo',sans-serif;letter-spacing:.04em">Camera steering</div>
+          <div class="mono" style="font-size:10px;color:var(--muted);margin-top:2px">step mode · 1 Hz · VAPIX center</div>
+        </div>
+        <button class="toggle" id="steerToggle" onclick="toggleSteering()"><div class="knob"></div></button>
+      </div>
+      <div id="nonptz" style="display:none;gap:9px;align-items:flex-start;margin:10px 0 0;background:rgba(224,120,64,.08);border:1px solid rgba(224,120,64,.45);padding:9px 11px">
+        <span class="mono" style="font:700 9px 'JetBrains Mono',monospace;letter-spacing:.08em;background:var(--warn);color:#0a0a0a;padding:2px 6px;flex:none">NON-PTZ</span>
+        <span style="font:400 10.5px/1.5 'Archivo',sans-serif;color:#f0d5c4">This camera has no pan-tilt-zoom head. Detection and events run normally; steering controls are disabled.</span>
+      </div>
+      <div id="steerSection">
+        <div style="padding:14px 0;border-bottom:1px solid var(--line2)">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font:600 12px 'Archivo',sans-serif;letter-spacing:.04em">Follow margin</span>
+            <span class="mono" id="marginLbl" style="font:600 16px 'JetBrains Mono',monospace;color:var(--accent)">33%</span>
+          </div>
+          <input type="range" id="marginRange" min="10" max="90" value="33" style="margin-top:10px">
+          <div class="mono" style="font-size:10px;line-height:1.6;color:var(--muted);margin-top:6px">Object is kept inside the centre zone on both axes — drag the corners of the guide on the video, or use the slider. An edge-clipped box forces an immediate zoom-out.</div>
+        </div>
+        <div style="padding:14px 0;border-bottom:1px solid var(--line2)">
+          <div class="h2">FOLLOW PRIORITY <span class="mono" style="font-weight:400;font-size:9px;color:var(--dim);letter-spacing:0"> — order = precedence · unchecked = never followed</span></div>
+          <div id="prio" style="display:flex;flex-direction:column;gap:2px"></div>
+        </div>
+        <div style="padding:14px 0;border-bottom:1px solid var(--line2)">
+          <button style="display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:none;padding:0;color:#c9c4b8" onclick="toggleAdv()">
+            <span style="font:600 11px 'Archivo',sans-serif;letter-spacing:.08em">ADVANCED TUNING</span>
+            <span class="mono" id="advArrow" style="color:var(--dim);font-size:11px">▸</span>
+          </button>
+          <div id="adv" style="display:none;margin-top:10px"></div>
+        </div>
+      </div>
+      <div style="padding:14px 0">
+        <div class="h2">STEERING LOG</div>
+        <div id="cmdlog" style="background:rgba(7,7,7,.7);border:1px solid var(--line2);padding:8px 10px;min-height:96px"></div>
+        <div style="margin-top:9px"><a class="mono" style="font-size:10.5px;letter-spacing:.06em" href="tracking.log" download>↓ TRACKING LOG (JSONL)</a> <span class="mono" style="font-size:10px;color:var(--dim)">· 1 line/s · <a href="tracking.log.1" download style="color:var(--dim)">previous</a></span></div>
+      </div>
+    </div>
+
+    <div id="tab-DETECT" style="display:none">
+      <div style="padding:2px 0 12px;border-bottom:1px solid var(--line2)">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font:600 12px 'Archivo',sans-serif;letter-spacing:.04em">Confidence threshold</span>
+          <span class="mono" id="thLbl" style="font:600 16px 'JetBrains Mono',monospace;color:var(--accent)">—%</span>
+        </div>
+        <input type="range" id="thRange" min="0" max="100" value="50" style="margin-top:10px">
+        <div class="mono" style="font-size:10px;color:var(--muted);margin-top:5px">Below this, detections are hidden and never steered to.</div>
+      </div>
+      <div style="padding:13px 0;border-bottom:1px solid var(--line2)">
+        <div class="h2">DETECTIONS · LAST 60 S</div>
+        <svg viewBox="0 0 240 40" preserveAspectRatio="none" style="width:100%;height:40px;display:block">
+          <polyline id="spark" points="" style="fill:none;stroke:var(--accent);stroke-width:1.4"></polyline>
+        </svg>
+      </div>
+      <div class="row">
+        <div>
+          <div style="font:600 12px 'Archivo',sans-serif">Area of interest</div>
+          <div class="mono" id="aoiSummary" style="font-size:10px;color:var(--muted);margin-top:2px">—</div>
+        </div>
+        <button class="smallbtn" onclick="aoiEnter()">EDIT ON VIDEO</button>
+      </div>
+      <div style="padding:13px 0;border-bottom:1px solid var(--line2)">
+        <div class="h2">SCALE MODE <span class="mono" style="font-weight:400;font-size:9px;color:var(--dim)">— changing restarts the app</span></div>
+        <div id="scaleBtns" style="display:flex;gap:4px"></div>
+      </div>
+      <div style="padding:13px 0">
+        <div class="h2">INFERENCE</div>
+        <div id="speedBtns" style="display:flex;gap:4px"></div>
+      </div>
+    </div>
+
+    <div id="tab-OUTPUT" style="display:none">
+      <div class="row">
+        <div><div style="font:600 12px 'Archivo',sans-serif">MQTT broker</div>
+        <div class="mono" id="mqttLine" style="font-size:10px;color:var(--muted);margin-top:2px">—</div></div>
+        <span class="mono" id="mqttBadge" style="font:600 9px 'JetBrains Mono',monospace;border:1px solid #3a3830;color:var(--muted);padding:3px 7px;letter-spacing:.08em">…</span>
+      </div>
+      <div id="outRows"></div>
+      <div class="mono" style="font-size:10px;line-height:1.6;color:var(--dim);margin-top:8px">Events feed VMS recording rules; crops feed off-camera pipelines. Configure on the <a href="mqtt.html">MQTT</a> and <a href="cropping.html">Cropping</a> pages.</div>
+    </div>
+
+    <div style="margin-top:18px;padding-top:12px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;align-items:baseline">
+      <span class="mono" id="modelLine" style="font-size:9.5px;color:var(--dim)">MODEL …</span>
+      <a class="mono" style="font-size:9.5px;letter-spacing:.06em" href="model.html">MANAGE →</a>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:12px">
+      <a class="mono" style="font-size:9px;color:var(--dim)" href="advanced.html">events</a>
+      <a class="mono" style="font-size:9px;color:var(--dim)" href="crops.html">crops</a>
+      <a class="mono" style="font-size:9px;color:var(--dim)" href="classic.html">classic ui</a>
+      <a class="mono" style="font-size:9px;color:var(--dim)" href="about.html">about</a>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ state ============ */
+var S = {
+  app: null, settings: null, modelCfg: null, device: null,
+  status: null, dets: [], tab: "TRACK", drawer: window.innerWidth >= 760,
+  aoiEdit: false, aoiBackup: null, aoiPoints: [], dragging: null,
+  spark: [], cmdlog: [], lastLoggedCmd: null, saveTimer: null,
+  displayOrder: null, enabledSet: null, allLabels: []
+};
+var $ = function (id) { return document.getElementById(id); };
+
+/* ============ transforms (mirrors MAP.h) ============ */
+function mapModelToPct(x, y, w, h) {
+  var m = S.modelCfg || {};
+  var mw = m.modelWidth || 640, mh = m.modelHeight || 640;
+  var vw = m.videoWidth || mw, vh = m.videoHeight || mh;
+  var sm = m.scaleModeName || "stretch";
+  var sx = vw / mw, sy = vh / mh, padY = 0;
+  if (sm.charAt(0) === "l") {              /* letterbox */
+    var s = mw / vw; padY = (mh - vh * s) / 2; sx = 1 / s; sy = 1 / s;
+  }
+  return {
+    x: (x * sx) / vw * 100, y: ((y - padY) * sy) / vh * 100,
+    w: (w * sx) / vw * 100, h: ((h - 0) * sy) / vh * 100
+  };
+}
+function pctToModel(px, py) {              /* inverse, for AOI editing */
+  var m = S.modelCfg || {};
+  var mw = m.modelWidth || 640, mh = m.modelHeight || 640;
+  var vw = m.videoWidth || mw, vh = m.videoHeight || mh;
+  var sm = m.scaleModeName || "stretch";
+  if (sm.charAt(0) === "l") {
+    var s = mw / vw, padY = (mh - vh * s) / 2;
+    return { x: px / 100 * vw * s, y: py / 100 * vh * s + padY };
+  }
+  return { x: px / 100 * mw, y: py / 100 * mh };
+}
+function modelToPctPoint(x, y) {
+  var r = mapModelToPct(x, y, 0, 0); return { x: r.x, y: r.y };
+}
+
+/* ============ http ============ */
+function jget(url) {
+  return fetch(url, { credentials: "same-origin" }).then(function (r) {
+    if (!r.ok) throw new Error(r.status); return r.json();
+  });
+}
+function saveSettings(partial) {
+  return fetch("settings", { method: "POST", credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(partial) });
+}
+/* always POST the complete ptz object (guards shallow-merge semantics) */
+function savePtz(mut) {
+  var p = JSON.parse(JSON.stringify((S.settings && S.settings.ptz) || {}));
+  mut(p);
+  S.settings.ptz = p;
+  return saveSettings({ ptz: p });
+}
+function restartApp() {
+  fetch("/axis-cgi/applications/control.cgi?action=restart&package=heavyx",
+        { credentials: "same-origin" });
+}
+
+/* ============ boot ============ */
+function boot() {
+  jget("app").then(function (app) {
+    S.app = app; S.settings = app.settings || {};
+    S.modelCfg = (app.model) ? app.model : null;
+    S.device = app.device || {};
+    var m = S.modelCfg || {};
+    $("devline").textContent =
+      ((S.status && S.status.ptz && S.status.ptz.supported) ? "PTZ FOLLOW · " : "DETECT · ") +
+      (S.device.model || "AXIS");
+    $("modelLine").textContent = "MODEL " + (m.classes || "?") + " classes · " +
+      (m.modelWidth || "?") + "px · " + ((S.settings.modelDescription || "").slice(0, 24) || "baked-in");
+    S.allLabels = (m.labels || []).slice();
+    initFromSettings();
+    startVideo();
+  }).catch(function () { setTimeout(boot, 2000); });
+  pollStatus();
+  setInterval(pollStatus, 1000);
+}
+function initFromSettings() {
+  var st = S.settings;
+  $("thRange").value = st.confidence != null ? st.confidence : 50;
+  $("thLbl").textContent = $("thRange").value + "%";
+  var ptz = st.ptz || {};
+  $("marginRange").value = ptz.marginPercent || 33;
+  $("marginLbl").textContent = (ptz.marginPercent || 33) + "%";
+  $("gpct").textContent = ptz.marginPercent || 33;
+  var prio = (ptz.priority || []).slice();
+  S.enabledSet = new Set(prio);
+  S.displayOrder = prio.concat(S.allLabels.filter(function (l) { return prio.indexOf(l) < 0; }));
+  renderPriority();
+  renderAdv();
+  renderScaleBtns();
+  renderSpeedBtns();
+  renderAoiSummary();
+  loadAoiFromSettings();
+  renderOutput();
+}
+
+/* ============ video ============ */
+function startVideo() {
+  var m = S.modelCfg || {};
+  var host = window.location.hostname;
+  var el = document.createElement("media-stream-player");
+  el.setAttribute("hostname", host);
+  el.setAttribute("format", "RTP_H264");
+  el.setAttribute("autoplay", "");
+  el.setAttribute("resolution", (m.videoWidth || 856) + "x" + (m.videoHeight || 640));
+  $("stage").appendChild(el);
+}
+
+/* ============ status poll ============ */
+function pollStatus() {
+  jget("status").then(function (st) {
+    S.status = st;
+    S.dets = (st.labels && st.labels.detections) || [];
+    S.spark.push(S.dets.length); if (S.spark.length > 60) S.spark.shift();
+    render();
+  }).catch(function () {
+    $("eyebrow").textContent = "APP UNREACHABLE";
+    $("eyebrow").style.color = "var(--fail)";
+  });
+  /* PTZ position (only meaningful on PTZ units) */
+  if (S.status && S.status.ptz && S.status.ptz.supported) {
+    fetch("/axis-cgi/com/ptz.cgi?query=position&camera=1", { credentials: "same-origin" })
+      .then(function (r) { return r.text(); }).then(function (t) {
+        var kv = {}; t.trim().split(/\r?\n/).forEach(function (l) {
+          var p = l.split("="); if (p.length === 2) kv[p[0]] = p[1];
+        });
+        if (kv.pan != null) $("pv").textContent = (+kv.pan).toFixed(1) + "°";
+        if (kv.tilt != null) $("tv").textContent = (+kv.tilt).toFixed(1) + "°";
+        if (kv.zoom != null) $("zv").textContent = (kv.zoom / 1000 + 1).toFixed(2) + "×";
+      }).catch(function () {});
+  }
+}
+
+/* ============ render ============ */
+function render() {
+  var st = S.status || {};
+  var model = st.model || {};
+  var overlay = st.overlay || {};
+  var ptz = st.ptz || {};
+  var fault = model.state === false;
+  var supported = !!ptz.supported;
+  var enabled = S.settings && S.settings.ptz && S.settings.ptz.enabled;
+  var tracking = ptz.state === "tracking";
+  var clipped = (ptz.lastCmd || "").indexOf("edge") >= 0;
+
+  /* health lights */
+  $("dotModel").style.background = fault ? "var(--fail)" : "var(--ok)";
+  $("dotModel").style.animation = fault ? "hxPulse 1.4s infinite" : "none";
+  $("dotOverlay").style.background = overlay.created ? "var(--ok)" : "#3a3830";
+  $("dotPtz").style.background = !supported ? "#3a3830" : tracking ? "var(--accent)" : "var(--ok)";
+  $("dotPtz").style.animation = tracking ? "hxPulse 1.4s infinite" : "none";
+  $("msLbl").textContent = fault ? "—" : Math.round(model.averageTime || 0) + " MS";
+
+  /* fault bar */
+  $("faultbar").style.display = fault ? "flex" : "none";
+  if (fault) $("faultmsg").textContent = model.status || "model failed";
+
+  /* boxes */
+  var th = +($("thRange").value);
+  var bx = $("boxes"); bx.innerHTML = "";
+  var target = ptz.target || "";
+  S.dets.forEach(function (d) {
+    if ((d.c || 0) < th) return;
+    var p = mapModelToPct(d.x, d.y, d.w, d.h);
+    var div = document.createElement("div");
+    var isT = tracking && d.label === target;
+    div.className = "det-box" + (isT ? " target" : "") + (isT && clipped ? " clipped" : "");
+    div.style.left = p.x + "%"; div.style.top = p.y + "%";
+    div.style.width = p.w + "%"; div.style.height = p.h + "%";
+    div.style.opacity = S.aoiEdit ? ".4" : "1";
+    var tag = document.createElement("div");
+    tag.className = "det-tag";
+    tag.textContent = d.label + " " + d.c + "%" + (isT && clipped ? " · CLIPPED" : "");
+    div.appendChild(tag);
+    bx.appendChild(div);
+  });
+
+  /* follow-zone guide */
+  var m = +($("marginRange").value);
+  var g = $("guide");
+  var showGuide = supported && !S.aoiEdit && !fault;
+  g.style.display = showGuide ? "block" : "none";
+  if (showGuide) {
+    g.style.left = (50 - m / 2) + "%"; g.style.top = (50 - m / 2) + "%";
+    g.style.width = m + "%"; g.style.height = m + "%";
+    g.style.borderColor = "rgba(255,196,0," + (enabled ? ".85" : ".3") + ")";
+  }
+
+  /* target plate */
+  var eyebrow, title, meta, col = "var(--accent)";
+  if (fault) { eyebrow = "DETECTION STOPPED"; title = "no detections"; meta = "MODEL OFFLINE — SEE BANNER"; col = "#f0a094"; }
+  else if (!supported) {
+    eyebrow = "DETECT ONLY"; col = "var(--accent)";
+    title = S.dets.length ? S.dets[0].label : "no machinery";
+    meta = S.dets.length ? S.dets.length + " OBJECT" + (S.dets.length > 1 ? "S" : "") + " IN FRAME" : "WAITING FOR DETECTIONS ≥ " + th + "%";
+  }
+  else if (!enabled) { eyebrow = "STEERING PAUSED"; title = S.dets.length ? S.dets[0].label : "no machinery"; meta = "ENABLE CAMERA STEERING IN THE TRACK TAB"; }
+  else if (tracking) {
+    eyebrow = clipped ? "CLIPPED — ZOOMING OUT" : "TRACKING"; col = clipped ? "var(--warn)" : "var(--accent)";
+    title = target;
+    meta = Math.round(ptz.conf || 0) + "% CONF · MAX-DIM " + Math.round(ptz.sizePercent || 0) + "% " +
+      ((ptz.sizePercent || 0) > m ? "> MARGIN " + m + "% — ZOOMING OUT" : "< MARGIN " + m + "%") +
+      (clipped ? " · EDGE-CLIPPED" : " · CENTERED");
+  }
+  else { eyebrow = "SEARCHING"; title = "no machinery"; meta = "WAITING FOR DETECTIONS ≥ " + th + "%"; }
+  $("eyebrow").textContent = eyebrow;
+  $("eyebrow").style.color = col;
+  $("eyebrow").style.animation = clipped ? "hxPulse 1.2s infinite" : "none";
+  $("plateTitle").textContent = title;
+  $("plateMeta").textContent = meta;
+  $("lastCmd").textContent = ptz.lastCmd || "none";
+
+  /* steering log ring (client-side, from lastCmd changes) */
+  var stamp = new Date().toTimeString().slice(0, 8);
+  var cmd = fault ? "— detection stopped" : !supported ? "— no PTZ on this device"
+    : !enabled ? "— steering disabled" : (ptz.lastCmd || "—");
+  if (cmd !== S.lastLoggedCmd || S.cmdlog.length === 0) {
+    S.cmdlog.push({ t: stamp, cmd: cmd }); S.lastLoggedCmd = cmd;
+    if (S.cmdlog.length > 5) S.cmdlog.shift();
+    $("cmdlog").innerHTML = S.cmdlog.map(function (l) {
+      return '<div class="mono" style="font-size:10px;line-height:1.9;color:#c9c4b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="color:#5c5750">' + l.t + "</span>  " + l.cmd + "</div>";
+    }).join("");
+  }
+
+  /* toggles / badges */
+  $("steerToggle").className = "toggle" + (enabled && supported ? " on" : "");
+  $("steerToggle").style.cursor = supported ? "pointer" : "not-allowed";
+  $("nonptz").style.display = supported ? "none" : "flex";
+  $("steerSection").style.opacity = supported ? "1" : ".45";
+  $("steerSection").style.pointerEvents = supported ? "auto" : "none";
+
+  /* spark */
+  $("spark").setAttribute("points", S.spark.map(function (v, i) {
+    return (i * (240 / 59)).toFixed(1) + "," + Math.max(2, 38 - v * 8);
+  }).join(" "));
+
+  /* priority badges refresh (seen/tracking states) */
+  refreshPriorityBadges(target, tracking);
+}
+
+/* ============ priority list ============ */
+function renderPriority() {
+  var host = $("prio"); host.innerHTML = "";
+  S.displayOrder.forEach(function (name, i) {
+    var row = document.createElement("div");
+    var isPerson = name === "person";
+    row.className = "prow" + (isPerson ? " person-sep" : "");
+    row.dataset.name = name;
+    var on = S.enabledSet.has(name);
+    row.innerHTML =
+      '<span class="mono" style="font-size:10px;color:var(--dim);width:16px;flex:none">' + String(i + 1).padStart(2, "0") + "</span>" +
+      '<input type="checkbox" ' + (on ? "checked" : "") + ' style="accent-color:var(--accent)" title="follow eligibility">' +
+      '<span class="nm' + (on ? "" : " off") + '">' + name + "</span>" +
+      '<span class="bdg"></span>' +
+      '<button class="mvbtn" data-d="-1" title="raise priority">▴</button>' +
+      '<button class="mvbtn" data-d="1" title="lower priority">▾</button>';
+    row.querySelector("input").addEventListener("change", function (e) {
+      if (e.target.checked) S.enabledSet.add(name); else S.enabledSet.delete(name);
+      persistPriority();
+    });
+    row.querySelectorAll(".mvbtn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var d = +b.dataset.d, idx = S.displayOrder.indexOf(name), j = idx + d;
+        if (j < 0 || j >= S.displayOrder.length) return;
+        S.displayOrder.splice(idx, 1); S.displayOrder.splice(j, 0, name);
+        persistPriority();
+      });
+    });
+    host.appendChild(row);
+  });
+}
+function persistPriority() {
+  var arr = S.displayOrder.filter(function (n) { return S.enabledSet.has(n); });
+  savePtz(function (p) { p.priority = arr; });
+  renderPriority();
+}
+function refreshPriorityBadges(target, tracking) {
+  var seen = new Set(S.dets.map(function (d) { return d.label; }));
+  document.querySelectorAll("#prio .prow").forEach(function (row) {
+    var name = row.dataset.name;
+    var nm = row.querySelector(".nm"), bdg = row.querySelector(".bdg");
+    var on = S.enabledSet.has(name);
+    var isT = tracking && name === target;
+    row.classList.toggle("tracking", isT);
+    nm.className = "nm" + (on ? "" : " off") + (seen.has(name) ? " seen" : "");
+    bdg.textContent = isT ? "TRACKING" : !on ? "NEVER FOLLOWED" : seen.has(name) ? "IN FRAME" : "";
+    bdg.className = "bdg" + (isT ? " trk" : "");
+  });
+}
+
+/* ============ advanced (read-only live values) ============ */
+function renderAdv() {
+  var p = (S.settings && S.settings.ptz) || {};
+  var rows = [
+    ["deadband (quiet zone)", p.deadband], ["approach / step", p.approach],
+    ["EMA smoothing α", p.emaAlpha], ["target stickiness", (p.stickySeconds || 5) + " s"],
+    ["loss → zoom-out after", (p.lossZoomoutSeconds || 6) + " s"],
+    ["log cap", (p.logMaxKB || 1024) + " KB"]
+  ];
+  $("adv").innerHTML = rows.map(function (r) {
+    return '<div class="kv"><span>' + r[0] + "</span><span>" + r[1] + "</span></div>";
+  }).join("");
+}
+function toggleAdv() {
+  var a = $("adv"); var open = a.style.display === "none";
+  a.style.display = open ? "block" : "none";
+  $("advArrow").textContent = open ? "▾" : "▸";
+}
+
+/* ============ detect tab ============ */
+$("thRange").addEventListener("input", function () { $("thLbl").textContent = this.value + "%"; });
+$("thRange").addEventListener("change", function () {
+  saveSettings({ confidence: +this.value });
+  S.settings.confidence = +this.value;
+});
+function renderScaleBtns() {
+  var cur = (S.settings && S.settings.scaleMode) || "balanced";
+  var host = $("scaleBtns"); host.innerHTML = "";
+  ["crop", "balanced", "letterbox"].forEach(function (n) {
+    var b = document.createElement("button");
+    b.className = "tabbtn"; b.style.letterSpacing = ".02em"; b.style.fontWeight = "500";
+    b.textContent = n === "crop" ? "center-crop" : n;
+    if (n === cur) { b.style.borderColor = "var(--accent)"; b.style.color = "var(--accent)"; b.style.background = "rgba(255,196,0,.1)"; }
+    b.onclick = function () {
+      if (n === cur) return;
+      if (!confirm("Changing scale mode restarts the app. Continue?")) return;
+      saveSettings({ scaleMode: n }).then(function () { restartApp(); });
+    };
+    host.appendChild(b);
+  });
+}
+function renderSpeedBtns() {
+  var cur = (S.settings && S.settings.prioritize) || "accuracy";
+  var host = $("speedBtns"); host.innerHTML = "";
+  ["speed", "accuracy"].forEach(function (n) {
+    var b = document.createElement("button");
+    b.className = "tabbtn"; b.textContent = n.toUpperCase();
+    if (n === cur) { b.style.borderColor = "var(--accent)"; b.style.color = "var(--accent)"; b.style.background = "rgba(255,196,0,.1)"; }
+    b.onclick = function () { saveSettings({ prioritize: n }); S.settings.prioritize = n; renderSpeedBtns(); };
+    host.appendChild(b);
+  });
+}
+
+/* ============ output tab ============ */
+function renderOutput() {
+  var st = S.settings || {};
+  var mq = (S.app && S.app.mqtt) || {};
+  $("mqttLine").textContent = mq.address ? ("mqtt://" + mq.address + ":" + (mq.port || 1883)) : "not configured";
+  var crop = st.cropping || {};
+  var rows = [
+    ["per-frame detections", true],
+    ["label state events", true],
+    ["detection crops (JPEG)", !!crop.active],
+    ["crops → HTTP POST", !!crop.http],
+    ["crops → SD card", !!crop.sdcard]
+  ];
+  $("outRows").innerHTML = rows.map(function (r) {
+    return '<div class="kv" style="padding:11px 0"><span style="color:#c9c4b8">' + r[0] + "</span><span style=\"color:" + (r[1] ? "var(--ok)" : "var(--dim)") + '">' + (r[1] ? "ON" : "OFF") + "</span></div>";
+  }).join("");
+}
+
+/* ============ mqtt status in output tab ============ */
+function pollMqtt() {
+  var st = S.status || {};
+  var connected = st.mqtt && st.mqtt.connected;
+  var b = $("mqttBadge");
+  b.textContent = connected ? "CONNECTED" : "OFFLINE";
+  b.style.color = connected ? "var(--ok)" : "var(--muted)";
+  b.style.borderColor = connected ? "rgba(90,208,126,.4)" : "#3a3830";
+  b.style.background = connected ? "rgba(90,208,126,.12)" : "none";
+}
+setInterval(pollMqtt, 2000);
+
+/* ============ steering toggle / margin ============ */
+function toggleSteering() {
+  var st = S.status || {};
+  if (!(st.ptz && st.ptz.supported)) return;
+  savePtz(function (p) { p.enabled = !p.enabled; });
+  render();
+}
+$("marginRange").addEventListener("input", function () {
+  $("marginLbl").textContent = this.value + "%";
+  $("gpct").textContent = this.value;
+  render();
+});
+$("marginRange").addEventListener("change", function () {
+  var v = +this.value;
+  savePtz(function (p) { p.marginPercent = v; });
+});
+
+/* margin corner drag */
+var stageEl = $("app");
+document.querySelectorAll(".gcorner").forEach(function (c) {
+  c.addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    try { c.setPointerCapture(e.pointerId); } catch (x) {}
+    S.dragging = { type: "margin" };
+    $("guide").classList.add("dragging");
+  });
+});
+stageEl.addEventListener("pointermove", function (e) {
+  if (!S.dragging) return;
+  var r = stageEl.getBoundingClientRect();
+  var px = Math.min(100, Math.max(0, (e.clientX - r.left) / r.width * 100));
+  var py = Math.min(100, Math.max(0, (e.clientY - r.top) / r.height * 100));
+  if (S.dragging.type === "margin") {
+    var mm = Math.round(Math.max(Math.abs(px - 50) * 2, Math.abs(py - 50) * 2));
+    mm = Math.min(90, Math.max(10, mm));
+    $("marginRange").value = mm;
+    $("marginLbl").textContent = mm + "%"; $("gpct").textContent = mm;
+    render();
+  } else if (S.dragging.type === "aoi") {
+    S.aoiPoints[S.dragging.i] = { x: px, y: py };
+    drawAoi(); drawAoiHandles();
+  }
+});
+function endDrag() {
+  if (!S.dragging) return;
+  if (S.dragging.type === "margin") {
+    var v = +$("marginRange").value;
+    savePtz(function (p) { p.marginPercent = v; });
+    $("guide").classList.remove("dragging");
+  }
+  S.dragging = null;
+}
+stageEl.addEventListener("pointerup", endDrag);
+stageEl.addEventListener("pointercancel", endDrag);
+
+/* ============ AOI editing ============ */
+function loadAoiFromSettings() {
+  var poly = (S.settings && S.settings.aoi_polygon) || [];
+  S.aoiPoints = poly.map(function (p) { return modelToPctPoint(p.x, p.y); });
+  drawAoi(); drawExcl();
+}
+function drawAoi() {
+  $("aoiPoly").setAttribute("points",
+    S.aoiPoints.map(function (p) { return p.x.toFixed(1) + "," + p.y.toFixed(1); }).join(" "));
+  $("aoiPoly").style.fill = S.aoiEdit ? "rgba(255,196,0,.09)" : "rgba(255,196,0,.04)";
+  $("aoiPoly").style.stroke = S.aoiEdit ? "#ffc400" : "rgba(255,196,0,.45)";
+  $("aoiPoly").style.strokeWidth = S.aoiEdit ? ".45" : ".3";
+}
+function drawExcl() {
+  var host = $("exclPolys"); host.innerHTML = "";
+  var ex = (S.settings && S.settings.exclude_polygons) || [];
+  ex.forEach(function (zone) {
+    if (zone.active === false) return;
+    var pts = (zone.polygon || []).map(function (p) {
+      var q = modelToPctPoint(p.x, p.y); return q.x.toFixed(1) + "," + q.y.toFixed(1);
+    }).join(" ");
+    var el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    el.setAttribute("points", pts);
+    el.setAttribute("style", "fill:rgba(232,93,77,.07);stroke:rgba(232,93,77,.55);stroke-width:.3;stroke-dasharray:1 1");
+    host.appendChild(el);
+  });
+}
+function drawAoiHandles() {
+  var host = $("aoiHandles"); host.innerHTML = "";
+  if (!S.aoiEdit) return;
+  S.aoiPoints.forEach(function (p, i) {
+    var d = document.createElement("div");
+    d.className = "aoi-handle";
+    d.style.left = "calc(" + p.x + "% - 14px)";
+    d.style.top = "calc(" + p.y + "% - 14px)";
+    d.innerHTML = "<div></div>";
+    d.addEventListener("pointerdown", function (e) {
+      e.preventDefault();
+      try { d.setPointerCapture(e.pointerId); } catch (x) {}
+      S.dragging = { type: "aoi", i: i };
+    });
+    host.appendChild(d);
+  });
+}
+function renderAoiSummary() {
+  var n = ((S.settings && S.settings.aoi_polygon) || []).length;
+  var e = ((S.settings && S.settings.exclude_polygons) || []).length;
+  $("aoiSummary").textContent = (n ? n + "-point zone" : "full frame") + " · " + e + " exclusion" + (e === 1 ? "" : "s");
+}
+function aoiEnter() {
+  S.aoiEdit = true;
+  S.aoiBackup = JSON.parse(JSON.stringify(S.aoiPoints));
+  if (S.aoiPoints.length < 3)
+    S.aoiPoints = [{x:10,y:10},{x:90,y:10},{x:90,y:90},{x:10,y:90}];
+  setDrawer(false);
+  $("aoibar").style.display = "flex";
+  drawAoi(); drawAoiHandles(); render();
+}
+function aoiDone() {
+  S.aoiEdit = false;
+  $("aoibar").style.display = "none";
+  var modelPts = S.aoiPoints.map(function (p) {
+    var q = pctToModel(p.x, p.y);
+    return { x: Math.round(q.x), y: Math.round(q.y) };
+  });
+  S.settings.aoi_polygon = modelPts;
+  saveSettings({ aoi_polygon: modelPts });
+  drawAoi(); drawAoiHandles(); renderAoiSummary(); setDrawer(window.innerWidth >= 760);
+}
+function aoiCancel() {
+  S.aoiEdit = false;
+  $("aoibar").style.display = "none";
+  S.aoiPoints = S.aoiBackup || S.aoiPoints;
+  drawAoi(); drawAoiHandles(); setDrawer(window.innerWidth >= 760);
+}
+
+/* ============ drawer / tabs ============ */
+function setDrawer(open) {
+  S.drawer = open;
+  $("drawer").className = "drawer" + (open ? "" : " closed");
+  $("reopen").style.display = open ? "none" : "block";
+  var push = open && window.innerWidth >= 760 ? "376px" : "18px";
+  $("lights").style.right = push;
+  $("ptzPlate").style.right = push;
+}
+function setTab(t) {
+  S.tab = t;
+  ["DETECT", "TRACK", "OUTPUT"].forEach(function (n) {
+    $("tab-" + n).style.display = n === t ? "block" : "none";
+  });
+  document.querySelectorAll(".tabbtn[data-tab]").forEach(function (b) {
+    b.className = "tabbtn" + (b.dataset.tab === t ? " on" : "");
+  });
+}
+
+setDrawer(S.drawer);
+boot();
+</script>
+</body>
+</html>

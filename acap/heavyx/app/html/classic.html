@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeavyX</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/app.css?v=4.1.0">
+    <script src="js/jquery-3.7.1.min.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="js/media-stream-player.min.js"></script>
+    <script src="js/polygon-editor.js"></script>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1e40af;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+        }
+
+        .top-navbar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            box-shadow: var(--shadow-lg);
+            padding: 0;
+            min-height: 64px;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white !important;
+            padding: 0.75rem 1.5rem;
+        }
+
+        .nav-pills .nav-link {
+            color: rgba(255, 255, 255, 0.85);
+            border-radius: 8px;
+            padding: 0.65rem 1.25rem;
+            margin: 0 0.25rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .nav-pills .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.25);
+            color: white;
+            font-weight: 600;
+        }
+
+        .main-content {
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+            background: var(--bg-white);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            color: var(--text-dark);
+            font-weight: 600;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--bg-light);
+        }
+
+        #view {
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            background: black;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+
+        #view-frame {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: black;
+        }
+
+        #video,
+        #overlayCanvas,
+        #polygonCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #video media-stream-player {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: fill !important;
+        }
+
+        #overlayCanvas {
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        #polygonCanvas {
+            z-index: 4;
+        }
+
+        #polygonCanvas.draw-mode {
+            cursor: crosshair;
+        }
+
+        .hint-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1d4ed8;
+            border-radius: 10px;
+            padding: 0.75rem 0.9rem;
+            font-size: 0.92rem;
+        }
+
+        .zone-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.6rem 0.7rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .zone-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .zone-name {
+            flex: 1;
+            border: none;
+            background: transparent;
+            outline: none;
+            font-weight: 600;
+            min-width: 0;
+        }
+
+        .status-pill {
+            display: inline-block;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1d4ed8;
+            border-radius: 999px;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.85rem;
+            margin-left: 0.4rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+
+            .nav-pills {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg top-navbar">
+        <div class="container-fluid">
+            <span class="navbar-brand acapName">HeavyX</span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" style="background-color: rgba(255,255,255,0.2); border: none;">
+                <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto nav-pills">
+                    <li class="nav-item"><a class="nav-link active" href="index.html">Detections</a></li>
+                    <li class="nav-item"><a class="nav-link" href="mqtt.html">MQTT</a></li>
+                    <li class="nav-item"><a class="nav-link" href="advanced.html">Events/Labels</a></li>
+                    <li class="nav-item"><a class="nav-link" href="cropping.html">Detection Export</a></li>
+                    <li class="nav-item"><a class="nav-link" href="model.html">Model</a></li>
+                    <li class="nav-item"><a class="nav-link" href="about.html">About</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div id="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.25); z-index:1000;">
+            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:2rem; border-radius:12px; box-shadow:var(--shadow-lg); text-align:center; min-width:280px;">
+                <h2 style="font-size:1.4rem; margin-bottom:0.75rem;">Model Offline</h2>
+                <p style="margin:0; color:var(--text-muted);">The model is loading. Please wait.</p>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <h5 class="card-title mb-0 border-0 pb-0">Live Detection View</h5>
+                            <div>
+                                <span class="status-pill" id="model-status-pill">Model: -</span>
+                                <span class="status-pill" id="time-pill">Inference: -</span>
+                            </div>
+                        </div>
+                        <div id="view">
+                            <div id="view-frame">
+                                <div id="video" style="width:100%;height:100%;position:absolute;top:0;left:0;"></div>
+                                <canvas id="overlayCanvas" style="width:100%;height:100%;position:absolute;top:0;left:0;pointer-events:none;"></canvas>
+                                <canvas id="polygonCanvas" style="width:100%;height:100%;position:absolute;top:0;left:0;"></canvas>
+                            </div>
+                        </div>
+                        <div class="hint-box mt-3" id="editor-hint">Select AOI or Exclusion, then draw polygons on top of the live video.</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                            <div class="btn-group" role="group">
+                                <button id="tab-aoi" class="btn btn-success">Area Of Interest</button>
+                                <button id="tab-exclude" class="btn btn-outline-danger">Exclude Areas</button>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button id="draw-btn" class="btn btn-primary">Draw Polygon</button>
+                                <button id="cancel-draw-btn" class="btn btn-secondary" style="display:none;">Cancel</button>
+                                <button id="save-zones-btn" class="btn btn-success">Save Zones</button>
+                            </div>
+                        </div>
+
+                        <div id="aoi-panel">
+                            <div class="text-muted small mb-2">Detections are accepted only when the detection center point is inside the AOI polygon. If no AOI polygon exists, the full configured rectangle is used.</div>
+                            <div id="aoi-summary" class="small fst-italic text-muted">No AOI polygon saved yet.</div>
+                            <div class="mt-2">
+                                <button id="convert-rect-btn" class="btn btn-sm btn-outline-success">Convert rectangle to polygon</button>
+                            </div>
+                        </div>
+
+                        <div id="exclude-panel" style="display:none;">
+                            <div class="text-muted small mb-2">Detections are discarded when the center point is inside any active exclusion polygon.</div>
+                            <div id="exclude-list"></div>
+                            <div id="exclude-empty" class="small fst-italic text-muted">No exclusion polygons saved.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Detection Settings</h5>
+                        <div class="mb-3 d-flex align-items-center">
+                            <label for="settings_confidence" class="form-label fw-bold mb-0" style="min-width: 180px;">Confidence Threshold</label>
+                            <select id="settings_confidence" class="form-select" style="width: 120px;">
+                                <option value="20">20%</option>
+                                <option value="30">30%</option>
+                                <option value="40">40%</option>
+                                <option value="50">50%</option>
+                                <option value="60">60%</option>
+                                <option value="70">70%</option>
+                                <option value="75">75%</option>
+                                <option value="80">80%</option>
+                                <option value="85">85%</option>
+                                <option value="90">90%</option>
+                                <option value="95">95%</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 d-flex align-items-center">
+                            <label for="settings_scaleMode" class="form-label fw-bold mb-0" style="min-width: 180px;">Scale Mode</label>
+                            <select id="settings_scaleMode" class="form-select" style="flex: 1;">
+                                <option value="balanced">Balanced - Reduced area, good quality</option>
+                                <option value="crop">Center-Crop - Smallest area, best quality</option>
+                                <option value="letterbox">Letterbox - Full area, less quality</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Video Information</label>
+                            <div class="small text-muted">Capture Resolution: <strong id="captureResolution" class="text-dark">-</strong></div>
+                            <div class="small text-muted">Model Input: <strong id="modelResolution" class="text-dark">-</strong></div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button id="save-detection-settings-btn" class="btn btn-primary">Save Detection Settings</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Active Event States</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped mb-0">
+                                <thead>
+                                    <tr><th>Event</th></tr>
+                                </thead>
+                                <tbody id="events-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="toast-container position-fixed top-0 end-0 p-3"></div>
+    </div>
+
+    <script>
+        let App = null;
+        let editor = null;
+        let detectionList = [];
+        let activeTab = 'aoi';
+        let aoiPolygon = null;
+        let excludePolygons = [];
+        let modelWidth = 640;
+        let modelHeight = 640;
+        let videoWidth = 640;
+        let videoHeight = 640;
+        let viewWidth = 640;
+        let viewHeight = 640;
+        let canvasWidth = 640;
+        let canvasHeight = 640;
+        let previousScaleMode = 'balanced';
+        const AOI_COLORS = ['#22c55e'];
+        const EXCLUDE_COLORS = ['#ef4444', '#f97316', '#ec4899', '#dc2626', '#b91c1c'];
+
+        function showToast(message, type) {
+            type = type || 'info';
+            const closeClass = type === 'warning' ? '' : ' btn-close-white';
+            const textClass = type === 'warning' ? 'text-dark' : 'text-white';
+            const html = '<div class="toast align-items-center ' + textClass + ' bg-' + type + ' border-0" role="alert">'
+                + '<div class="d-flex"><div class="toast-body">' + message + '</div>'
+                + '<button type="button" class="btn-close' + closeClass + ' me-2 m-auto" data-bs-dismiss="toast"></button>'
+                + '</div></div>';
+            const container = document.querySelector('.toast-container');
+            container.insertAdjacentHTML('beforeend', html);
+            const element = container.lastElementChild;
+            new bootstrap.Toast(element, { delay: 4000 }).show();
+            element.addEventListener('hidden.bs.toast', function () {
+                this.remove();
+            });
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function canvasPointFromModel(point) {
+            return {
+                x: Math.round((point.x || 0) * canvasWidth / modelWidth),
+                y: Math.round((point.y || 0) * canvasHeight / modelHeight)
+            };
+        }
+
+        function modelPointFromCanvas(point) {
+            return {
+                x: Math.round((point.x || 0) * modelWidth / canvasWidth),
+                y: Math.round((point.y || 0) * modelHeight / canvasHeight)
+            };
+        }
+
+        function toCanvasPolygon(polygon) {
+            if (!Array.isArray(polygon))
+                return [];
+            return polygon.map(canvasPointFromModel);
+        }
+
+        function toModelPolygon(polygon) {
+            if (!Array.isArray(polygon))
+                return [];
+            return polygon.map(modelPointFromCanvas);
+        }
+
+        function polygonBounds(polygon) {
+            if (!polygon || !polygon.length) {
+                return { x1: 0, y1: 0, x2: modelWidth, y2: modelHeight };
+            }
+            const xs = polygon.map(function (point) { return point.x; });
+            const ys = polygon.map(function (point) { return point.y; });
+            return {
+                x1: Math.max(0, Math.min.apply(null, xs)),
+                y1: Math.max(0, Math.min.apply(null, ys)),
+                x2: Math.min(modelWidth, Math.max.apply(null, xs)),
+                y2: Math.min(modelHeight, Math.max.apply(null, ys))
+            };
+        }
+
+        function drawDetections() {
+            const canvas = document.getElementById('overlayCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (!detectionList.length)
+                return;
+            // canvasWidth/Height are sized to the actual video display area for each scale mode,
+            // so this ratio always maps model pixels → canvas buffer pixels correctly.
+            const scaleX = canvasWidth / modelWidth;
+            const scaleY = canvasHeight / modelHeight;
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#facc15';
+            ctx.fillStyle = '#facc15';
+            ctx.font = 'bold 20px Arial';
+            ctx.beginPath();
+            detectionList.forEach(function (detection) {
+                const x = detection.x * scaleX;
+                const y = detection.y * scaleY;
+                const w = detection.w * scaleX;
+                const h = detection.h * scaleY;
+                ctx.rect(x, y, w, h);
+                ctx.fillText((detection.label || 'Unknown') + ': ' + Math.min(detection.c, 100), x, y > 20 ? y - 8 : y + h + 20);
+            });
+            ctx.stroke();
+        }
+
+        function renderAoiSummary() {
+            if (aoiPolygon && aoiPolygon.polygon && aoiPolygon.polygon.length >= 3) {
+                $('#aoi-summary').html('<span class="text-success fw-semibold">AOI active.</span> Detections must stay inside the green polygon.');
+            } else {
+                $('#aoi-summary').text('No AOI polygon saved yet. Legacy rectangle fallback remains active.');
+            }
+        }
+
+        function renderExcludeList() {
+            const container = $('#exclude-list');
+            container.empty();
+            if (!excludePolygons.length) {
+                $('#exclude-empty').show();
+                return;
+            }
+            $('#exclude-empty').hide();
+
+            excludePolygons.forEach(function (item, index) {
+                const color = EXCLUDE_COLORS[index % EXCLUDE_COLORS.length];
+                const html = '<div class="zone-item">'
+                    + '<span class="zone-color" style="background:' + color + '"></span>'
+                    + '<input class="zone-name" data-index="' + index + '" value="' + escapeHtml(item.name || ('Exclude ' + (index + 1))) + '">'
+                    + '<div class="form-check m-0">'
+                    + '<input class="form-check-input exclude-active" type="checkbox" id="exclude-active-' + index + '" data-index="' + index + '" ' + (item.active !== false ? 'checked' : '') + '>'
+                    + '<label class="form-check-label" for="exclude-active-' + index + '">Active</label>'
+                    + '</div>'
+                    + '<button class="btn btn-sm btn-outline-danger delete-exclude" data-index="' + index + '">Delete</button>'
+                    + '</div>';
+                container.append(html);
+            });
+
+            $('.zone-name').off('change').on('change', function () {
+                excludePolygons[parseInt(this.dataset.index, 10)].name = this.value;
+            });
+            $('.exclude-active').off('change').on('change', function () {
+                excludePolygons[parseInt(this.dataset.index, 10)].active = this.checked;
+                if (activeTab === 'exclude')
+                    syncEditorPolygons();
+            });
+            $('.delete-exclude').off('click').on('click', function () {
+                excludePolygons.splice(parseInt(this.dataset.index, 10), 1);
+                excludePolygons.forEach(function (item, idx) { item.id = idx + 1; });
+                renderExcludeList();
+                syncEditorPolygons();
+            });
+        }
+
+        function syncEditorPolygons() {
+            if (!editor)
+                return;
+            if (activeTab === 'aoi') {
+                editor.colors = AOI_COLORS;
+                editor.invertFill = true;
+                editor.setPolygons(aoiPolygon ? [aoiPolygon] : []);
+            } else {
+                editor.colors = EXCLUDE_COLORS;
+                editor.invertFill = false;
+                editor.setPolygons(excludePolygons);
+            }
+            editor.redraw();
+            drawDetections();
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            if (tab === 'aoi') {
+                $('#tab-aoi').removeClass('btn-outline-success').addClass('btn-success');
+                $('#tab-exclude').removeClass('btn-danger').addClass('btn-outline-danger');
+                $('#aoi-panel').show();
+                $('#exclude-panel').hide();
+            } else {
+                $('#tab-aoi').removeClass('btn-success').addClass('btn-outline-success');
+                $('#tab-exclude').removeClass('btn-outline-danger').addClass('btn-danger');
+                $('#aoi-panel').hide();
+                $('#exclude-panel').show();
+            }
+            if (editor)
+                editor.cancelDraw();
+            $('#draw-btn').show();
+            $('#cancel-draw-btn').hide();
+            syncEditorPolygons();
+        }
+
+        function saveSettings(payload, callback) {
+            $.ajax({
+                type: 'POST',
+                url: 'settings',
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+                success: function () {
+                    if (callback)
+                        callback();
+                },
+                error: function (xhr) {
+                    showToast('Failed to save settings: ' + (xhr.responseText || 'unknown error'), 'danger');
+                }
+            });
+        }
+
+        function saveZones() {
+            const payload = {};
+            if (aoiPolygon && aoiPolygon.polygon && aoiPolygon.polygon.length >= 3) {
+                payload.aoi_polygon = toModelPolygon(aoiPolygon.polygon);
+                payload.aoi = polygonBounds(payload.aoi_polygon);
+            } else {
+                payload.aoi_polygon = [];
+            }
+
+            payload.exclude_polygons = excludePolygons.map(function (item, index) {
+                return {
+                    id: item.id || (index + 1),
+                    name: item.name || ('Exclude ' + (index + 1)),
+                    active: item.active !== false,
+                    polygon: toModelPolygon(item.polygon || [])
+                };
+            });
+            if (payload.exclude_polygons.length) {
+                payload.exclude = polygonBounds(payload.exclude_polygons[0].polygon);
+            }
+
+            saveSettings(payload, function () {
+                App.settings.aoi_polygon = payload.aoi_polygon;
+                if (payload.aoi)
+                    App.settings.aoi = payload.aoi;
+                App.settings.exclude_polygons = payload.exclude_polygons;
+                if (payload.exclude)
+                    App.settings.exclude = payload.exclude;
+                showToast('Zone settings saved.', 'success');
+            });
+        }
+
+        function setupView() {
+            modelWidth = App.model.modelWidth;
+            modelHeight = App.model.modelHeight;
+            videoWidth = App.model.videoWidth;
+            videoHeight = App.model.videoHeight;
+
+            const scaleMode = App.settings.scaleMode || 'balanced';
+            let canvasTop = 0;
+            if (scaleMode === 'letterbox') {
+                viewWidth = modelWidth;
+                viewHeight = modelWidth;
+                canvasWidth = viewWidth;
+                canvasHeight = Math.round(viewWidth / (videoWidth / videoHeight));
+                canvasTop = Math.round((viewHeight - canvasHeight) / 2);
+            } else {
+                viewWidth = videoWidth;
+                viewHeight = videoHeight;
+                canvasWidth = viewWidth;
+                canvasHeight = viewHeight;
+            }
+
+            // Use aspect-ratio so height auto-scales when max-width kicks in on narrow screens.
+            // This prevents the player from adding black bars inside a wrongly-shaped container.
+            $('#view').css({ width: viewWidth + 'px', height: '', aspectRatio: viewWidth + ' / ' + viewHeight, maxWidth: '100%' });
+            $('#view-frame').css({ width: '100%', height: '100%' });
+
+            // Position canvases as % of view so they stay correct when view is scaled.
+            // In letterbox mode the canvas covers only the video area, offset from top.
+            var topPct    = (canvasTop    / viewHeight * 100).toFixed(4) + '%';
+            var heightPct = (canvasHeight / viewHeight * 100).toFixed(4) + '%';
+            $('#overlayCanvas').attr({ width: canvasWidth, height: canvasHeight })
+                .css({ top: topPct, height: heightPct, width: '100%' });
+            $('#polygonCanvas').attr({ width: canvasWidth, height: canvasHeight })
+                .css({ top: topPct, height: heightPct, width: '100%' });
+            $('#video').css({ top: '0', height: '100%', width: '100%' });
+
+            const secureConnection = location.protocol === 'https:' ? 'secure=true' : '';
+            const player = '<media-stream-player hostname="' + window.location.hostname + '" ' + secureConnection + ' format="RTP_H264" compression="40" audio="0" resolution="' + videoWidth + 'x' + videoHeight + '" variant="basic" autoplay></media-stream-player>';
+            $('#video').html(player);
+
+            $('#captureResolution').text(videoWidth + ' x ' + videoHeight);
+            $('#modelResolution').text(modelWidth + ' x ' + modelHeight);
+        }
+
+        function initEditor() {
+            const canvas = document.getElementById('polygonCanvas');
+            editor = new PolygonEditor(canvas, {
+                colors: AOI_COLORS,
+                hintEl: document.getElementById('editor-hint'),
+                onChanged: function (polygons) {
+                    if (activeTab === 'aoi') {
+                        aoiPolygon = polygons.length ? {
+                            id: 1,
+                            name: 'AOI',
+                            active: true,
+                            polygon: polygons[0].polygon
+                        } : null;
+                        renderAoiSummary();
+                    } else {
+                        excludePolygons = polygons.map(function (item, index) {
+                            return {
+                                id: item.id || (index + 1),
+                                name: item.name || ('Exclude ' + (index + 1)),
+                                active: item.active !== false,
+                                polygon: item.polygon
+                            };
+                        });
+                        renderExcludeList();
+                    }
+                    editor.redraw();
+                    drawDetections();
+                },
+                onCommit: function (polygon) {
+                    if (activeTab === 'aoi') {
+                        aoiPolygon = { id: 1, name: 'AOI', active: true, polygon: polygon };
+                        renderAoiSummary();
+                    } else {
+                        const id = excludePolygons.length ? Math.max.apply(null, excludePolygons.map(function (item) { return item.id || 0; })) + 1 : 1;
+                        excludePolygons.push({ id: id, name: 'Exclude ' + id, active: true, polygon: polygon });
+                        renderExcludeList();
+                    }
+                    editor.cancelDraw();
+                    $('#draw-btn').show();
+                    $('#cancel-draw-btn').hide();
+                    syncEditorPolygons();
+                }
+            });
+
+            const storedAoi = Array.isArray(App.settings.aoi_polygon) ? App.settings.aoi_polygon : [];
+            if (storedAoi.length >= 3) {
+                aoiPolygon = {
+                    id: 1,
+                    name: 'AOI',
+                    active: true,
+                    polygon: toCanvasPolygon(storedAoi)
+                };
+            }
+
+            const storedExcludes = Array.isArray(App.settings.exclude_polygons) ? App.settings.exclude_polygons : [];
+            excludePolygons = storedExcludes.map(function (item, index) {
+                return {
+                    id: item.id || (index + 1),
+                    name: item.name || ('Exclude ' + (index + 1)),
+                    active: item.active !== false,
+                    polygon: toCanvasPolygon(item.polygon || [])
+                };
+            });
+
+            renderAoiSummary();
+            renderExcludeList();
+            switchTab('aoi');
+        }
+
+        function pollStatus() {
+            $.ajax({
+                type: 'GET',
+                url: 'status',
+                dataType: 'json',
+                cache: false,
+                success: function (status) {
+                    if (!status.model || !status.model.state) {
+                        $('#modal').show();
+                        return;
+                    }
+                    $('#modal').hide();
+                    $('#model-status-pill').text('Model: ' + (status.model.status || 'Running'));
+                    $('#time-pill').text('Inference: ' + ((status.model.averageTime != null) ? (status.model.averageTime + ' ms') : '-'));
+
+                    detectionList = (status.labels && Array.isArray(status.labels.detections)) ? status.labels.detections : [];
+                    if (editor)
+                        editor.redraw();
+                    drawDetections();
+
+                    $('#events-table').empty();
+                    const events = status.events || {};
+                    Object.keys(events).forEach(function (label) {
+                        if (events[label])
+                            $('#events-table').append('<tr><td>' + escapeHtml(label) + '</td></tr>');
+                    });
+                },
+                error: function () {
+                    $('#modal').show();
+                }
+            });
+        }
+
+        function pollForAcapRestart() {
+            let attempts = 0;
+            function poll() {
+                attempts += 1;
+                $.ajax({
+                    type: 'GET',
+                    url: 'status',
+                    dataType: 'json',
+                    cache: false,
+                    timeout: 3000,
+                    success: function (status) {
+                        if (status && status.model && status.model.state) {
+                            showToast('ACAP restarted successfully. Refreshing page...', 'success');
+                            setTimeout(function () {
+                                location.reload();
+                            }, 1000);
+                        } else if (attempts < 30) {
+                            setTimeout(poll, 2000);
+                        } else {
+                            showToast('ACAP restart timeout. Please refresh manually.', 'warning');
+                        }
+                    },
+                    error: function () {
+                        if (attempts < 30) {
+                            setTimeout(poll, 2000);
+                        } else {
+                            showToast('ACAP restart timeout. Please refresh manually.', 'warning');
+                        }
+                    }
+                });
+            }
+            setTimeout(poll, 3000);
+        }
+
+        $(function () {
+            $.ajax({
+                type: 'GET',
+                url: 'app',
+                dataType: 'json',
+                cache: false,
+                success: function (data) {
+                    App = data;
+                    document.title = App.manifest.acapPackageConf.setup.friendlyName;
+                    $('.acapName').text(App.manifest.acapPackageConf.setup.friendlyName);
+                    $('#settings_confidence').val(App.settings.confidence || 50);
+                    $('#settings_scaleMode').val(App.settings.scaleMode || 'balanced');
+                    previousScaleMode = App.settings.scaleMode || 'balanced';
+                    setupView();
+                    initEditor();
+                    pollStatus();
+                    setInterval(pollStatus, 1000);
+                },
+                error: function () {
+                    showToast('The application is not responding.', 'danger');
+                }
+            });
+
+            $('#tab-aoi').on('click', function () { switchTab('aoi'); });
+            $('#tab-exclude').on('click', function () { switchTab('exclude'); });
+
+            $('#draw-btn').on('click', function () {
+                if (editor)
+                    editor.startDraw();
+                $('#draw-btn').hide();
+                $('#cancel-draw-btn').show();
+            });
+
+            $('#cancel-draw-btn').on('click', function () {
+                if (editor)
+                    editor.cancelDraw();
+                $('#draw-btn').show();
+                $('#cancel-draw-btn').hide();
+                syncEditorPolygons();
+            });
+
+            $('#convert-rect-btn').on('click', function () {
+                var aoi = App && App.settings && App.settings.aoi;
+                if (!aoi) {
+                    showToast('No AOI rectangle configured.', 'warning');
+                    return;
+                }
+                var poly = [
+                    { x: aoi.x1, y: aoi.y1 },
+                    { x: aoi.x2, y: aoi.y1 },
+                    { x: aoi.x2, y: aoi.y2 },
+                    { x: aoi.x1, y: aoi.y2 }
+                ];
+                aoiPolygon = { id: 1, name: 'AOI', active: true, polygon: toCanvasPolygon(poly) };
+                renderAoiSummary();
+                syncEditorPolygons();
+                if (editor) {
+                    editor.selectedIndex = 0;
+                    editor.updateHint();
+                    editor.redraw();
+                    drawDetections();
+                }
+                showToast('Rectangle converted to polygon. Shift+click an edge to add vertices, then Save Zones.', 'info');
+            });
+
+            $('#save-zones-btn').on('click', saveZones);
+
+            $('#save-detection-settings-btn').on('click', function () {
+                const confidence = parseInt($('#settings_confidence').val(), 10) || 50;
+                App.settings.confidence = confidence;
+                saveSettings({ confidence: confidence }, function () {
+                    showToast('Detection settings saved.', 'success');
+                });
+            });
+
+            $('#settings_scaleMode').on('change', function () {
+                const scaleModeValue = $(this).val();
+                if (!confirm('This will restart the ACAP. Proceed?')) {
+                    $('#settings_scaleMode').val(previousScaleMode);
+                    return;
+                }
+                saveSettings({ scaleMode: scaleModeValue }, function () {
+                    previousScaleMode = scaleModeValue;
+                    $.ajax({
+                        type: 'GET',
+                        url: '/axis-cgi/applications/control.cgi?action=restart&package=heavyx',
+                        success: function () {
+                            showToast('ACAP is restarting. Page will refresh when ready...', 'info');
+                            pollForAcapRestart();
+                        },
+                        error: function (xhr, status, error) {
+                            showToast('Failed to restart ACAP: ' + (error || status), 'danger');
+                            $('#settings_scaleMode').val(previousScaleMode);
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+excavator
+dump truck
+wheel loader
+truck
+person
+bulldozer
+roller
+mobile crane
+tower crane
+pump truck
+concrete mixer
+pile driver
