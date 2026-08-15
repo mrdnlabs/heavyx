@@ -1,7 +1,7 @@
 PROG1 = steerx
 OBJS1 = steerx.c
 
-PKGS = gio-2.0 glib-2.0
+PKGS = gio-2.0 glib-2.0 axparameter
 CFLAGS += -W -Wall -std=c99 -D_POSIX_C_SOURCE=200809L \
           $(shell pkg-config --cflags $(PKGS))
 LDLIBS += $(shell pkg-config --libs $(PKGS)) -lcurl -lm

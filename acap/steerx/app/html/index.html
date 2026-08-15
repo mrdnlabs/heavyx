@@ -87,10 +87,13 @@
       <div class="kv"><span>approach / step</span><span>0.33</span></div>
       <div class="kv"><span>deadband</span><span>0.07</span></div>
       <div class="kv"><span>min confidence</span><span>40%</span></div>
-      <div class="kv"><span>zoom target</span><span>½ frame ht</span></div>
-      <div class="kv"><span>zoom band</span><span>0.35–0.65</span></div>
+      <div class="kv"><span>EMA smoothing</span><span>α 0.35</span></div>
+      <div class="kv"><span>zoom margin</span><span id="pMargin">…</span></div>
+      <div class="kv"><span>overlay slot</span><span id="pSlot">…</span></div>
+      <div class="kv"><span>log cap</span><span id="pLog">…</span></div>
     </div>
-    <p class="muted" style="margin:12px 0 0">This page reflects what SteerX would follow from the live DetectX feed, applying the same priority logic. Steering itself runs in the on-camera app.</p>
+    <p class="muted" style="margin:12px 0 0">Zoom keeps the whole object inside the center <b>margin</b> of the frame (both axes); a box touching the frame edge forces an immediate zoom-out (clipped object). Adjust <code>MarginPercent</code>, <code>OverlaySlot</code> (#D slot for burned-in stats, 0=off), and <code>LogMaxKB</code> in this app's settings on the camera Apps page.</p>
+    <p style="margin:10px 0 0"><a href="tracking.log" download>Download tracking log</a> <span class="muted">(JSONL, one line per tick · <a href="tracking.log.1" download>previous rotation</a>)</span></p>
   </div>
 
   <footer>SteerX drives this camera's PTZ to follow detected construction machinery · <span id="fver">0.3.0</span></footer>
@@ -162,6 +165,28 @@ async function tick(){
   } catch(e){ /* non-PTZ camera or transient */ }
 }
 tick(); setInterval(tick, 1000);
+
+// live app parameters (param group capitalization varies: Steerx vs steerx)
+async function loadParams(){
+  for (const grp of ["Steerx","steerx"]) {
+    try {
+      const txt = await getText("/axis-cgi/param.cgi?action=list&group=root."+grp);
+      if (!txt.includes("=")) continue;
+      const p = Object.fromEntries(txt.trim().split(/\r?\n/)
+        .map(l=>l.split("=")).map(([k,v])=>[k.split(".").pop(),v]));
+      document.getElementById("pMargin").textContent =
+        (p.MarginPercent ?? "33") + "% (center)";
+      document.getElementById("pSlot").textContent =
+        (p.OverlaySlot==="0"||!p.OverlaySlot) ? "off" : ("#D"+p.OverlaySlot);
+      document.getElementById("pLog").textContent = (p.LogMaxKB ?? "1024")+" KB";
+      return;
+    } catch(e){ /* try next */ }
+  }
+  document.getElementById("pMargin").textContent = "33% (default)";
+  document.getElementById("pSlot").textContent = "off (default)";
+  document.getElementById("pLog").textContent = "1024 KB (default)";
+}
+loadParams(); setInterval(loadParams, 10000);
 </script>
 </body>
 </html>

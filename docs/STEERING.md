@@ -54,6 +54,33 @@ deadband 5–6%, slew-rate clamp, gains scaled by `1/zoom_magnification`
   (loan devices block outgoing traffic, so on-camera MQTT can't reach us) and
   for developing against cameras with no model installed.
 
+## steerx v0.4.0 additions (validated live on P3408)
+
+- **Margin-based zoom policy** replaces target-height zoom: the whole object
+  must fit inside the center `MarginPercent` (default 33%) of the frame on
+  BOTH axes. Fixes the "centered on the left half of the bulldozer" failure —
+  a tightly-zoomed partial box lies about the object's center.
+- **Edge-touch rule**: if the RAW box touches a frame edge (±3 px), the object
+  is clipped -> immediate zoom-out step before any centering.
+- **EMA smoothing** (α 0.35) of box center AND size, ported from the
+  off-camera controller.
+- **Runtime parameters** via axparameter (camera Apps page settings dialog /
+  `param.cgi` group `root.Steerx`): `MarginPercent` (10-90), `OverlaySlot`
+  (#D slot 1-16 for burned-in stats, 0=off), `LogMaxKB` (0=off).
+- **Burned-in stats overlay**: sets dynamic text `#D<slot>` via
+  `dynamicoverlay.cgi?action=settext`. The #D token must exist in an overlay:
+  on OS 12 create it with the JSON API
+  (`POST /axis-cgi/dynamicoverlay/dynamicoverlay.cgi`, method `addText`,
+  `"text":"#D1"`, position e.g. `bottomLeft` — the legacy
+  `Image.I0.Text.*` params are gone). Text: `SteerX: <label> <conf>% size <n>`
+  plus `CLIPPED` when edge-touching.
+- **Tracking log**: JSONL, one line/tick (raw box, EMA box, error, maxdim vs
+  margin, edge flag, issued command), size-capped with one rotation,
+  downloadable at `/local/steerx/tracking.log` (linked from the app UI).
+- Burned-in *boxes* deliberately deferred to the DetectX-fork combined app:
+  steerx polls at 1 Hz, so boxes would lag visibly; the fork can draw at
+  inference rate via axoverlay.
+
 ## steerx ACAP (on-camera port) — v0.3.0
 
 `acap/steerx/` is the native C port of the step controller, wired to the

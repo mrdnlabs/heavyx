@@ -7,11 +7,28 @@
             "vendor": "Machinery Tracking PoC",
             "embeddedSdkVersion": "3.0",
             "runMode": "never",
-            "version": "0.3.0",
+            "version": "0.4.0",
             "architecture": "aarch64"
         },
         "configuration": {
-            "settingPage": "index.html"
+            "settingPage": "index.html",
+            "paramConfig": [
+                {
+                    "name": "MarginPercent",
+                    "default": "33",
+                    "type": "string"
+                },
+                {
+                    "name": "OverlaySlot",
+                    "default": "0",
+                    "type": "string"
+                },
+                {
+                    "name": "LogMaxKB",
+                    "default": "1024",
+                    "type": "string"
+                }
+            ]
         }
     },
     "resources": {
